@@ -128,16 +128,16 @@
     ├─ globals.css 작성 (기본 스타일)
     └─ next.config.mjs 확인
 
-[ ] Task 1.4: Backend 기본 패키지 설치
+[x] Task 1.4: Backend 기본 패키지 설치
     ├─ backend/ 폴더에서 package.json 생성
     ├─ npm install @supabase/supabase-js (백엔드용)
     ├─ npm install cors (CORS 설정)
     └─ npm install dotenv (환경변수)
 
-[ ] Task 1.5: Git 커밋 (첫 번째 브랜치)
+[x] Task 1.5: Git 커밋 (첫 번째 브랜치)
     ├─ git checkout -b feature/task-bundle-1
     ├─ git add .
-    ├─ git commit -m "feat: TASK BUNDLE 1 프로젝트 기본 구조 및 패키지 설치"
+    ├─ git commit -m "feat: TASK BUNDLE 1 project structure and package installation"
     └─ git push origin feature/task-bundle-1
 ```
 
@@ -161,7 +161,7 @@
     ├─ Supabase URL 및 API Key 복사
     └─ .env.local에 저장
 
-[ ] Task 2.2: 11개 테이블 생성
+[x] Task 2.2: 13개 테이블 생성
     ├─ 001_create_users.sql ⭐
     │  ├─ id, email, full_name, phone, address
     │  ├─ role ('customer' | 'staff')
@@ -245,23 +245,23 @@
        ├─ order_id (FK), notes
        └─ 인덱스: user_id, created_at
 
-[ ] Task 2.3: Row Level Security (RLS) 정책 설정
+[x] Task 2.3: Row Level Security (RLS) 정책 설정
     ├─ 고객은 자신의 주문만 조회/수정 가능
     ├─ staff는 할당된 작업만 조회/수정 가능
     ├─ 관리자는 모든 데이터 접근 가능
     └─ 재고 테이블은 staff만 접근 가능
 
-[ ] Task 2.4: 초기 데이터 입력 (Seeds)
+[x] Task 2.4: 초기 데이터 입력 (Seeds)
     ├─ dinners_seed.sql (Valentine, French, English, Champagne Feast)
     ├─ styles_seed.sql (simple, grand, deluxe)
-    ├─ menu_items_seed.sql (각 디너별 메뉴 항목)
+    ├─ menu_items_seed.sql (각 디너별 메뉴 항목 - 템플릿)
     ├─ ingredients_seed.sql (7가지 재료: 고기, 채소, 와인, 샴페인, 커피, 바게트빵, 계란)
     └─ loyalty_tiers_seed.sql (4단계 등급)
 
-[ ] Task 2.5: Git 커밋 (DB 설계)
+[x] Task 2.5: Git 커밋 (DB 설계)
     ├─ git checkout -b feature/task-bundle-2
     ├─ database/migrations/ 모든 파일 커밋
-    ├─ git commit -m "feat: TASK BUNDLE 2 데이터베이스 테이블 및 시드 생성"
+    ├─ git commit -m "feat: TASK BUNDLE 2 database tables and seeds creation"
     └─ git push origin feature/task-bundle-2
 ```
 
