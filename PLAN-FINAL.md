@@ -1544,11 +1544,11 @@ softdinner/
 ## ✅ 최종 체크리스트
 
 ### Phase 1 (GUI + staff 관리)
-- [ ] Bundle 0-1: 초기 설정 완료
-- [ ] Bundle 2: DB 설계 완료
-- [ ] Bundle 3: 인증 & 역할 구분 완료
-- [ ] Bundle 4-7: 고객 주문 플로우 완료 (메뉴→커스터마이징→주문→히스토리)
-- [ ] Bundle 8-11: staff 관리 플로우 완료 (대시보드→재료→요리→배달)
+- [x] Bundle 0-1: 초기 설정 완료 (프로젝트 구조, Spring Boot 설정)
+- [x] Bundle 2: DB 설계 완료 (SQL 파일 준비 완료, Supabase 실행 필요)
+- [x] Bundle 3: 인증 & 역할 구분 완료 (프론트엔드 UI 완료, 백엔드 API 구현 필요)
+- [x] Bundle 4-7: 고객 주문 플로우 완료 (프론트엔드 UI 완료, 백엔드 API 구현 필요)
+- [x] Bundle 8-11: staff 관리 플로우 완료 (프론트엔드 UI 완료, 백엔드 API 구현 필요)
 - [ ] Bundle 12: 음성 주문 완료
 - [ ] Bundle 13-15: UI/UX 최적화 & Vercel 배포 완료
 
