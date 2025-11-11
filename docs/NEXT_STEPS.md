@@ -121,24 +121,27 @@
 
 ---
 
-### 4️⃣ 프론트엔드 API 연동 수정
+### 4️⃣ 프론트엔드 API 연동 수정 (Task Bundle 3에서 함께 처리)
 
 **Next.js API Routes → Spring Boot API 호출로 변경**
 
-1. **AuthContext 수정**
+⚠️ **이 작업은 Task Bundle 3에서 Spring Boot API를 구현할 때 함께 처리됩니다.**
+
+1. **AuthContext 수정** (Task 3.6에서 처리)
    - `frontend/context/AuthContext.jsx`
    - `/api/auth/me` 호출을 Spring Boot API로 변경
    - `NEXT_PUBLIC_API_URL` 환경변수 사용
+   - `frontend/app/api/auth/me/route.js` 삭제
 
-2. **로그인/회원가입 폼 수정**
+2. **로그인/회원가입 폼 수정** (Task 3.2, 3.3에서 처리)
    - `frontend/app/auth/page.jsx`
-   - Spring Boot API 호출로 변경
+   - Spring Boot API 호출로 변경 (`NEXT_PUBLIC_API_URL` 사용)
 
-3. **Next.js API Routes 제거 또는 수정**
-   - `frontend/app/api/auth/me/route.js` → Spring Boot API 호출로 변경
-   - `frontend/app/api/auth/logout/route.js` → Spring Boot API 호출로 변경
+3. **로그아웃 기능 수정** (Task 3.8에서 처리)
+   - `frontend/context/AuthContext.jsx`의 signOut 함수
+   - `frontend/app/api/auth/logout/route.js` 삭제
 
-**예상 시간**: 1~1.5시간
+**예상 시간**: Task Bundle 3 구현 시 포함됨
 
 ---
 

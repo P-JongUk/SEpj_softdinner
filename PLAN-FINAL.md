@@ -376,7 +376,6 @@
     └─ @PreAuthorize 어노테이션으로 보호된 API 제어
 
 [ ] Task 3.6: 현재 사용자 정보 API
-    ├─ frontend/app/api/auth/me/route.js (Next.js API Route - Spring Boot로 변경 필요) ⚠️
     ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
     │  ├─ @GetMapping("/api/auth/me")
     │  ├─ @PreAuthorize("isAuthenticated()")
@@ -385,7 +384,9 @@
     │  ├─ 현재 사용자 정보 조회
     │  ├─ role, loyalty_tier 등 포함
     │  └─ UserDTO 반환
-    └─ 프론트엔드에서 AuthContext 초기화 시 호출 (Spring Boot API로 변경 필요)
+    ├─ frontend/context/AuthContext.jsx 수정
+    │  └─ /api/auth/me 호출을 Spring Boot API로 변경 (NEXT_PUBLIC_API_URL 사용)
+    └─ frontend/app/api/auth/me/route.js 삭제 (Spring Boot API로 대체됨)
 
 [ ] Task 3.7: Zustand 상태 관리 (선택사항 강화)
     ├─ npm install zustand (이미 설치됨)
@@ -395,12 +396,13 @@
     │  └─ totalPrice 상태
     └─ Redux DevTools 통합 (디버깅용)
 
-[x] Task 3.8: 로그아웃 기능
-    ├─ frontend/app/api/auth/logout/route.js (Next.js API Route - Spring Boot로 변경 필요) ⚠️
+[ ] Task 3.8: 로그아웃 기능
     ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
     │  ├─ @PostMapping("/api/auth/logout")
     │  └─ 로그아웃 처리 (클라이언트에서 토큰 삭제)
-    └─ frontend에서 useAuth() 훅으로 로그아웃 버튼 구현 ✅
+    ├─ frontend/context/AuthContext.jsx 수정
+    │  └─ 로그아웃 시 Spring Boot API 호출 (선택사항, 클라이언트에서 처리 가능)
+    └─ frontend/app/api/auth/logout/route.js 삭제 (Spring Boot API로 대체됨)
 
 [ ] Task 3.9: Git 커밋 (인증 시스템)
     ├─ git checkout -b feature/task-bundle-3
