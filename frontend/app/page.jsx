@@ -6,7 +6,7 @@ import Footer from "@/components/common/footer"
 export default function HomePage() {
   return (
     <>
-      <Header user={null} role="customer" />
+      <Header />
       <main className="flex-1">
         <section className="relative h-[600px] flex items-center justify-center">
           <div

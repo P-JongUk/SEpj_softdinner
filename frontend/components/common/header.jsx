@@ -4,8 +4,10 @@ import { useState } from "react"
 import Link from "next/link"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/context/AuthContext"
 
-export default function Header({ user, role }) {
+export default function Header() {
+  const { user, role, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
@@ -30,8 +32,8 @@ export default function Header({ user, role }) {
                     <Link href="/dashboard">내 대시보드</Link>
                   </Button>
                 )}
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/auth/logout">로그아웃</Link>
+                <Button variant="outline" size="sm" onClick={signOut}>
+                  로그아웃
                 </Button>
               </div>
             ) : (

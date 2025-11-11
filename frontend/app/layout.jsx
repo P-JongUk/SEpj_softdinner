@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
+import { AuthProvider } from "@/context/AuthContext"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -30,7 +31,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="ko">
-      <body className="font-sans antialiased min-h-screen flex flex-col">{children}</body>
+      <body className="font-sans antialiased min-h-screen flex flex-col">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   )
 }
