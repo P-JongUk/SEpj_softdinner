@@ -188,7 +188,7 @@
     ├─ Supabase URL 및 API Key 복사
     └─ .env.local에 저장
 
-[ ] Task 2.2: 11개 테이블 생성
+[x] Task 2.2: 11개 테이블 생성 (SQL 파일 준비 완료)
     ├─ 001_create_users.sql ⭐
     │  ├─ id, email, full_name, phone, address
     │  ├─ role ('customer' | 'staff')
@@ -272,18 +272,18 @@
        ├─ order_id (FK), notes
        └─ 인덱스: user_id, created_at
 
-[ ] Task 2.3: Row Level Security (RLS) 정책 설정
-    ├─ 고객은 자신의 주문만 조회/수정 가능
-    ├─ staff는 할당된 작업만 조회/수정 가능
-    ├─ 관리자는 모든 데이터 접근 가능
-    └─ 재고 테이블은 staff만 접근 가능
+[x] Task 2.3: Row Level Security (RLS) 정책 설정 (SQL 파일 준비 완료)
+    ├─ 고객은 자신의 주문만 조회/수정 가능 ✅
+    ├─ staff는 할당된 작업만 조회/수정 가능 ✅
+    ├─ 관리자는 모든 데이터 접근 가능 ✅
+    └─ 재고 테이블은 staff만 접근 가능 ✅
 
-[ ] Task 2.4: 초기 데이터 입력 (Seeds)
-    ├─ dinners_seed.sql (Valentine, French, English, Champagne Feast)
-    ├─ styles_seed.sql (simple, grand, deluxe)
-    ├─ menu_items_seed.sql (각 디너별 메뉴 항목)
-    ├─ ingredients_seed.sql (7가지 재료: 고기, 채소, 와인, 샴페인, 커피, 바게트빵, 계란)
-    └─ loyalty_tiers_seed.sql (4단계 등급)
+[x] Task 2.4: 초기 데이터 입력 (Seeds) (SQL 파일 준비 완료)
+    ├─ dinners_seed.sql (Valentine, French, English, Champagne Feast) ✅
+    ├─ styles_seed.sql (simple, grand, deluxe) ✅
+    ├─ menu_items_seed.sql (각 디너별 메뉴 항목) ✅
+    ├─ ingredients_seed.sql (7가지 재료: 고기, 채소, 와인, 샴페인, 커피, 바게트빵, 계란) ✅
+    └─ loyalty_tiers_seed.sql (4단계 등급) ✅
 
 [ ] Task 2.5: Git 커밋 (DB 설계)
     ├─ git checkout -b feature/task-bundle-2
@@ -306,16 +306,16 @@
 │  Supabase Auth + 단일 로그인 + 역할 자동 구분│
 └─────────────────────────────────────────────────┘
 
-[ ] Task 3.1: Supabase Auth 초기 설정
-    ├─ frontend/lib/supabase.client.js 작성
+[x] Task 3.1: Supabase Auth 초기 설정
+    ├─ frontend/lib/supabase.client.js 작성 ✅
     │  └─ createClient() 설정
-    ├─ backend/src/main/java/com/softdinner/config/SupabaseConfig.java 작성
+    ├─ backend/src/main/java/com/softdinner/config/SupabaseConfig.java 작성 ✅
     │  └─ WebClient 설정 (Supabase API 호출용)
-    └─ Supabase Auth 활성화 (이메일/비밀번호 인증)
+    └─ Supabase Auth 활성화 (이메일/비밀번호 인증) - 수동 작업 필요
 
-[ ] Task 3.2: 회원가입 페이지 (고객/staff 역할 선택) ⭐
-    ├─ frontend/app/auth/page.jsx (페이지 - 로그인/회원가입 통합)
-    ├─ frontend/components/auth/SignupForm.jsx (컴포넌트)
+[x] Task 3.2: 회원가입 페이지 (고객/staff 역할 선택) ⭐
+    ├─ frontend/app/auth/page.jsx (페이지 - 로그인/회원가입 통합) ✅
+    ├─ frontend/components/auth/SignupForm.jsx (컴포넌트) ✅
     │  ├─ 이메일, 비밀번호, 이름, 전화, 주소 입력
     │  ├─ 역할 선택 드롭다운 ⭐
     │  │  ├─ customer (고객)
@@ -329,11 +329,11 @@
     │  ├─ Supabase Auth 회원가입 처리
     │  ├─ users 테이블에 역할 저장 ⭐
     │  └─ 회원가입 성공 정보 반환
-    └─ frontend/lib/validators.js (이메일, 비밀번호 검증)
+    └─ frontend/lib/validators.js (이메일, 비밀번호 검증) - 선택사항
 
-[ ] Task 3.3: 로그인 페이지 (단일 페이지, 자동 역할 구분) ⭐⭐⭐
-    ├─ frontend/app/auth/page.jsx (페이지 - 로그인/회원가입 통합)
-    ├─ frontend/components/auth/LoginForm.jsx (컴포넌트)
+[x] Task 3.3: 로그인 페이지 (단일 페이지, 자동 역할 구분) ⭐⭐⭐
+    ├─ frontend/app/auth/page.jsx (페이지 - 로그인/회원가입 통합) ✅
+    ├─ frontend/components/auth/LoginForm.jsx (컴포넌트) ✅
     │  ├─ 이메일, 비밀번호 입력 필드
     │  ├─ 고객/staff 선택 옵션 없음 (자동 구분) ⭐
     │  └─ "로그인" 버튼
@@ -345,24 +345,24 @@
     │  ├─ Supabase Auth 로그인 처리
     │  ├─ users 테이블에서 역할(role) 조회 ⭐
     │  └─ 응답: { user, role: 'customer' | 'staff' }
-    └─ 로그인 후 역할에 따라 자동 라우팅 ⭐
+    └─ 로그인 후 역할에 따라 자동 라우팅 ⭐ ✅
        ├─ 'staff' → /staff
        └─ 'customer' → /dashboard
 
-[ ] Task 3.4: 인증 상태 관리 (AuthContext)
-    ├─ frontend/src/context/AuthContext.jsx
+[x] Task 3.4: 인증 상태 관리 (AuthContext)
+    ├─ frontend/context/AuthContext.jsx ✅
     │  ├─ Supabase.auth.onAuthStateChange() 리스닝
     │  ├─ user 상태 및 role 상태 관리 ⭐
     │  ├─ localStorage JWT 토큰 자동 유지
-    │  └─ /api/auth/me API로 추가 정보 조회
-    ├─ frontend/src/hooks/useAuth.js
+    │  └─ /api/auth/me API로 추가 정보 조회 (Spring Boot API로 변경 필요)
+    ├─ frontend/hooks/useAuth.js (AuthContext에 통합됨) ✅
     │  └─ const { user, role, loading } = useAuth()
-    ├─ frontend/src/_app.js
+    ├─ frontend/app/layout.jsx ✅
     │  ├─ AuthProvider로 감싸기
     │  └─ 로그인 후 역할별 자동 라우팅 ⭐
-    └─ frontend/src/components/auth/ProtectedRoute.jsx
+    └─ frontend/components/auth/ProtectedRoute.jsx ✅
        ├─ requiredRole 파라미터 지원 ⭐
-       └─ 접근 권한 없으면 /auth/login으로 이동
+       └─ 접근 권한 없으면 /auth로 이동
 
 [ ] Task 3.5: 백엔드 인증 미들웨어 (Spring Security)
     ├─ backend/src/main/java/com/softdinner/config/SecurityConfig.java
@@ -376,6 +376,7 @@
     └─ @PreAuthorize 어노테이션으로 보호된 API 제어
 
 [ ] Task 3.6: 현재 사용자 정보 API
+    ├─ frontend/app/api/auth/me/route.js (Next.js API Route - Spring Boot로 변경 필요) ⚠️
     ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
     │  ├─ @GetMapping("/api/auth/me")
     │  ├─ @PreAuthorize("isAuthenticated()")
@@ -384,7 +385,7 @@
     │  ├─ 현재 사용자 정보 조회
     │  ├─ role, loyalty_tier 등 포함
     │  └─ UserDTO 반환
-    └─ 프론트엔드에서 AuthContext 초기화 시 호출
+    └─ 프론트엔드에서 AuthContext 초기화 시 호출 (Spring Boot API로 변경 필요)
 
 [ ] Task 3.7: Zustand 상태 관리 (선택사항 강화)
     ├─ npm install zustand (이미 설치됨)
@@ -394,11 +395,12 @@
     │  └─ totalPrice 상태
     └─ Redux DevTools 통합 (디버깅용)
 
-[ ] Task 3.8: 로그아웃 기능
+[x] Task 3.8: 로그아웃 기능
+    ├─ frontend/app/api/auth/logout/route.js (Next.js API Route - Spring Boot로 변경 필요) ⚠️
     ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
     │  ├─ @PostMapping("/api/auth/logout")
     │  └─ 로그아웃 처리 (클라이언트에서 토큰 삭제)
-    └─ frontend에서 useAuth() 훅으로 로그아웃 버튼 구현
+    └─ frontend에서 useAuth() 훅으로 로그아웃 버튼 구현 ✅
 
 [ ] Task 3.9: Git 커밋 (인증 시스템)
     ├─ git checkout -b feature/task-bundle-3
