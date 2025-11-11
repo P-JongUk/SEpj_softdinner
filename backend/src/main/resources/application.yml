@@ -3,10 +3,10 @@ spring:
     name: softdinner-backend
   
   # Supabase Configuration
-  supabase:
-    url: ${SUPABASE_URL:}
-    service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
-    anon-key: ${SUPABASE_ANON_KEY:}
+supabase:
+  url: ${SUPABASE_URL:}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+  anon-key: ${SUPABASE_ANON_KEY:}
   
   # Server Configuration
   server:

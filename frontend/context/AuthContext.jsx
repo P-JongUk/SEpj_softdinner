@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase.client"
+import { authAPI } from "@/lib/api"
 
 const AuthContext = createContext({})
 
@@ -13,61 +13,48 @@ export function AuthProvider({ children }) {
   const router = useRouter()
 
   useEffect(() => {
-    // 초기 세션 확인
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setUser(session.user)
-        fetchUserRole(session.user.id)
-      } else {
-        setUser(null)
-        setRole(null)
-      }
-      setLoading(false)
-    })
-
-    // 인증 상태 변경 리스너
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        setUser(session.user)
-        await fetchUserRole(session.user.id)
-      } else {
-        setUser(null)
-        setRole(null)
-      }
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
+    // 초기 사용자 정보 확인
+    checkAuth()
   }, [])
 
-  const fetchUserRole = async (userId) => {
+  const checkAuth = async () => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('role, loyalty_tier, total_orders, total_spent')
-        .eq('id', userId)
-        .single()
+      const token = localStorage.getItem('accessToken')
+      if (!token) {
+        setUser(null)
+        setRole(null)
+        setLoading(false)
+        return
+      }
 
-      if (error) throw error
-
-      setRole(data?.role || null)
+      // Spring Boot API로 현재 사용자 정보 조회
+      const userData = await authAPI.getCurrentUser()
+      setUser(userData)
+      setRole(userData.role)
     } catch (error) {
-      console.error('Error fetching user role:', error)
+      console.error('Error checking auth:', error)
+      // 토큰이 유효하지 않으면 삭제
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      setUser(null)
       setRole(null)
+    } finally {
+      setLoading(false)
     }
   }
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      await authAPI.logout()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    } finally {
+      // 클라이언트에서 토큰 삭제
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
       setUser(null)
       setRole(null)
       router.push('/')
-    } catch (error) {
-      console.error('Error signing out:', error)
     }
   }
 
@@ -76,7 +63,7 @@ export function AuthProvider({ children }) {
     role,
     loading,
     signOut,
-    refreshUser: () => user && fetchUserRole(user.id)
+    refreshUser: checkAuth
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

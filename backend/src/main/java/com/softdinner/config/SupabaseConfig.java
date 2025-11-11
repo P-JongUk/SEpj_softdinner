@@ -8,10 +8,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class SupabaseConfig {
     
-    @Value("${spring.supabase.url}")
+    @Value("${supabase.url}")
     private String supabaseUrl;
     
-    @Value("${spring.supabase.service-role-key}")
+    @Value("${supabase.service-role-key}")
     private String serviceRoleKey;
     
     @Bean

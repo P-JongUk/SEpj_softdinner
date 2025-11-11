@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Header from "@/components/common/header"
 import Footer from "@/components/common/footer"
-import { supabase } from "@/lib/supabase.client"
+import { authAPI } from "@/lib/api"
 
 export default function AuthPage() {
   const router = useRouter()
@@ -36,47 +36,33 @@ export default function AuthPage() {
         return
       }
 
-      // Supabase Auth 회원가입
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Spring Boot API 회원가입
+      const response = await authAPI.signup({
         email,
         password,
-        options: {
-          data: {
-            full_name: fullName,
-            phone,
-            address,
-            role
-          }
-        }
+        fullName,
+        phone,
+        address,
+        role
       })
 
-      if (authError) throw authError
-
-      // users 테이블에 사용자 정보 저장
-      if (authData.user) {
-        const { error: dbError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: authData.user.email,
-            full_name: fullName,
-            phone,
-            address,
-            role
-          })
-
-        if (dbError) throw dbError
-
-        // 회원가입 성공
-        alert("회원가입이 완료되었습니다. 이메일을 확인해주세요.")
-        setIsLogin(true)
-        setEmail("")
-        setPassword("")
-        setFullName("")
-        setPhone("")
-        setAddress("")
-        setStaffKey("")
+      // 토큰 저장
+      if (response.accessToken) {
+        localStorage.setItem('accessToken', response.accessToken)
+        if (response.refreshToken) {
+          localStorage.setItem('refreshToken', response.refreshToken)
+        }
       }
+
+      // 회원가입 성공
+      alert("회원가입이 완료되었습니다!")
+      setIsLogin(true)
+      setEmail("")
+      setPassword("")
+      setFullName("")
+      setPhone("")
+      setAddress("")
+      setStaffKey("")
     } catch (err) {
       setError(err.message || "회원가입 중 오류가 발생했습니다.")
     } finally {
@@ -90,25 +76,22 @@ export default function AuthPage() {
     setLoading(true)
 
     try {
-      // Supabase Auth 로그인
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Spring Boot API 로그인
+      const response = await authAPI.login({
         email,
         password
       })
 
-      if (authError) throw authError
-
-      // users 테이블에서 역할 조회
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', authData.user.id)
-        .single()
-
-      if (userError) throw userError
+      // 토큰 저장
+      if (response.accessToken) {
+        localStorage.setItem('accessToken', response.accessToken)
+        if (response.refreshToken) {
+          localStorage.setItem('refreshToken', response.refreshToken)
+        }
+      }
 
       // 역할에 따라 자동 라우팅
-      if (userData.role === 'staff') {
+      if (response.role === 'staff') {
         router.push('/staff')
       } else {
         router.push('/dashboard')
