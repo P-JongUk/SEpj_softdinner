@@ -137,25 +137,29 @@
     ├─ globals.css 작성 (기본 스타일)
     └─ next.config.mjs 확인
 
-[ ] Task 1.4: Backend 기본 구조 설정 (Spring Boot)
-    ├─ backend/ 폴더에서 Spring Boot 프로젝트 초기화
-    ├─ pom.xml 생성 (Maven 의존성 관리)
+[x] Task 1.4: Backend 기본 구조 설정 (Spring Boot)
+    ├─ backend/ 폴더에서 Spring Boot 프로젝트 초기화 ✅
+    ├─ pom.xml 생성 (Maven 의존성 관리) ✅
     │  ├─ Spring Boot Starter Web
     │  ├─ Spring Boot Starter Security
     │  ├─ Spring Boot Starter Validation
     │  ├─ JWT 라이브러리 (jjwt)
     │  ├─ WebClient (Supabase API 호출용)
     │  └─ Lombok
-    ├─ application.yml 설정
+    ├─ application.yml 설정 ✅
     │  ├─ 서버 포트: 8080
     │  ├─ Supabase 설정
     │  └─ CORS 설정
-    └─ 기본 패키지 구조 생성
-       ├─ com.softdinner.controller
-       ├─ com.softdinner.service
-       ├─ com.softdinner.repository
-       ├─ com.softdinner.model
-       └─ com.softdinner.config
+    ├─ 기본 패키지 구조 생성 ✅
+    │  ├─ com.softdinner.controller
+    │  ├─ com.softdinner.service
+    │  ├─ com.softdinner.repository
+    │  ├─ com.softdinner.model
+    │  └─ com.softdinner.config
+    └─ 개발 환경 설정 (수동 작업 필요)
+       ├─ JDK 17 설치 (docs/SETUP_GUIDE.md 참고)
+       ├─ Maven 설치 (docs/SETUP_GUIDE.md 참고)
+       └─ 설치 확인: java -version, mvn -version
 
 [ ] Task 1.5: Git 커밋 (첫 번째 브랜치)
     ├─ git checkout -b feature/task-bundle-1
