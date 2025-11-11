@@ -2,6 +2,7 @@
 REM Task Bundle 작업 완료 후 커밋 및 푸시 스크립트 (Windows)
 REM 사용법: scripts\commit-and-push.bat <bundle-number> <description>
 REM 예: scripts\commit-and-push.bat 1 "프로젝트 기본 구조 및 패키지 설치"
+REM ⚠️ 모든 커밋과 푸시는 v2 브랜치 계열로 진행됩니다.
 
 if "%1"=="" (
     echo 사용법: scripts\commit-and-push.bat ^<bundle-number^> ^<description^>
@@ -37,14 +38,16 @@ git add .
 REM 커밋
 git commit -m "feat: TASK BUNDLE %BUNDLE_NUMBER% %DESCRIPTION%"
 
-REM 푸시
+REM 푸시 (v2 브랜치 계열로)
 git push origin %BRANCH_NAME%
 
 echo.
 echo ✅ 커밋 및 푸시 완료!
 echo 📦 브랜치: %BRANCH_NAME%
+echo 🌿 베이스 브랜치: v2
+echo.
+echo ⚠️  중요: 모든 개발은 v2 브랜치 계열에서만 진행됩니다.
 echo.
 echo 다음 단계:
-echo 1. GitHub에서 Pull Request를 생성하세요
-echo 2. 리뷰 후 main 브랜치로 병합하세요
-
+echo 1. GitHub에서 Pull Request를 생성하세요 (v2 브랜치로)
+echo 2. 리뷰 후 v2 브랜치로 병합하세요
