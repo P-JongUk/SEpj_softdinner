@@ -46,6 +46,7 @@ cp .env.example .env.local
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
 ### 3. 환경변수 설명
@@ -54,10 +55,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
 |--------|------|------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase 프로젝트 URL | `https://xxxxx.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 공개 키 (클라이언트용) | `eyJhbGc...` |
+| `NEXT_PUBLIC_API_URL` | Spring Boot API 서버 URL | `http://localhost:8080` (로컬) 또는 배포된 URL |
 
 ⚠️ **주의**: 
 - `NEXT_PUBLIC_` 접두사가 붙은 변수는 클라이언트 사이드에서 접근 가능합니다.
-- Frontend에서 Supabase를 직접 사용하므로 별도의 API URL이 필요하지 않습니다.
+- Frontend에서 Supabase Auth는 직접 사용하고, 비즈니스 로직은 Spring Boot API를 통해 호출합니다.
 
 ---
 
@@ -84,7 +86,8 @@ cp .env.example .env.local
 ```env
 SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...  # service_role key 사용
-DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+JWT_SECRET=your-jwt-secret-key-change-in-production
 ```
 
 ### 3. 환경변수 설명
@@ -93,11 +96,12 @@ DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres
 |--------|------|------|
 | `SUPABASE_URL` | Supabase 프로젝트 URL | `https://xxxxx.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key (서버 전용) | `eyJhbGc...` |
-| `DATABASE_URL` | PostgreSQL 직접 연결 URL (선택사항) | `postgresql://...` |
+| `CORS_ALLOWED_ORIGINS` | CORS 허용 Origin (쉼표로 구분) | `http://localhost:3000,http://localhost:3001` |
+| `JWT_SECRET` | JWT 토큰 서명용 비밀키 | `your-jwt-secret-key` (프로덕션에서는 반드시 변경!) |
 
-⚠️ **중요**: `SUPABASE_SERVICE_ROLE_KEY`는 **Service Role Key**를 사용해야 합니다. 이 키는 RLS를 우회하고 모든 권한을 가지므로 절대 클라이언트에 노출하지 마세요!
-
-**참고**: `NODE_ENV`는 Next.js가 자동으로 설정하므로 수동으로 설정할 필요가 없습니다.
+⚠️ **중요**: 
+- `SUPABASE_SERVICE_ROLE_KEY`는 **Service Role Key**를 사용해야 합니다. 이 키는 RLS를 우회하고 모든 권한을 가지므로 절대 클라이언트에 노출하지 마세요!
+- `JWT_SECRET`은 프로덕션 환경에서 반드시 강력한 랜덤 문자열로 변경하세요!
 
 ---
 
@@ -119,7 +123,15 @@ console.log(process.env.NEXT_PUBLIC_SUPABASE_URL)
 
 ```bash
 cd backend
-npm run dev
+mvn spring-boot:run
+```
+
+또는
+
+```bash
+cd backend
+mvn clean package
+java -jar target/softdinner-backend-0.1.0.jar
 ```
 
 서버가 정상적으로 시작되면 환경변수가 올바르게 설정된 것입니다.

@@ -1,20 +1,24 @@
-# Backend Dockerfile
-FROM node:18-alpine
-
+# Multi-stage build for Spring Boot
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# package.json과 package-lock.json 복사
-COPY package*.json ./
+# Copy pom.xml and download dependencies
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# 의존성 설치
-RUN npm install
+# Copy source code and build
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# 나머지 파일 복사
-COPY . .
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
 
-# 포트 3001 노출 (선택사항)
-EXPOSE 3001
+# Copy JAR from build stage
+COPY --from=build /app/target/*.jar app.jar
 
-# 개발 모드 실행
-CMD ["npm", "run", "dev"]
+# Expose port
+EXPOSE 8080
 
+# Run application
+ENTRYPOINT ["java", "-jar", "app.jar"]

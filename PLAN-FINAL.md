@@ -3,9 +3,16 @@
 ## 📋 프로젝트 개요
 
 **프로젝트명**: SoftDinner - 프리미엄 디너 배달 서비스  
-**기술 스택**: Next.js, Supabase DB, Supabase Auth, JavaScript (Zustand, TailwindCSS)  
+**기술 스택**: 
+- **Frontend**: Next.js, JavaScript (Zustand, TailwindCSS)
+- **Backend**: Spring Boot (Java 17), REST API
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: Supabase Auth
 **아키텍처**: Monorepo 구조 (Frontend + Backend + Database 명확 분리)  
-**배포 플랫폼**: Vercel, GitHub, Docker  
+**배포 플랫폼**: 
+- **Frontend**: Vercel
+- **Backend**: Heroku, AWS, 또는 Docker (별도 배포)
+- **Database**: Supabase
 **개발 기간**: Phase 1 → Phase 2  
 
 ---
@@ -64,23 +71,25 @@
     │  ├─ 포트 3000 (Next.js)
     │  └─ npm install & npm run dev
     ├─ Dockerfile.backend 작성 ✅ (backend/Dockerfile)
-    │  ├─ Node.js 18+ 기본 이미지
-    │  └─ Next.js API Routes 서버
+    │  ├─ Maven + Java 17 기본 이미지
+    │  └─ Spring Boot 애플리케이션
     ├─ docker-compose.yml 작성 ✅
     │  ├─ frontend 서비스 (포트 3000)
-    │  ├─ backend 서비스 (포트 3001, 선택사항)
+    │  ├─ backend 서비스 (포트 8080, Spring Boot)
     │  └─ 볼륨 매운트 (개발 편의)
     └─ .dockerignore 작성 ✅
 
 [x] Task 0.5: 환경변수 관리
     ├─ frontend/.env.example 작성 ✅
     │  ├─ NEXT_PUBLIC_SUPABASE_URL=
-    │  └─ NEXT_PUBLIC_SUPABASE_ANON_KEY=
+    │  ├─ NEXT_PUBLIC_SUPABASE_ANON_KEY=
+    │  └─ NEXT_PUBLIC_API_URL= (Spring Boot API URL)
     ├─ .env.local 생성 (로컬 개발용, .gitignore 적용) - 수동 작업 필요
     ├─ backend/.env.example 작성 ✅
     │  ├─ SUPABASE_URL=
     │  ├─ SUPABASE_SERVICE_ROLE_KEY=
-    │  └─ DATABASE_URL= (선택사항)
+    │  ├─ CORS_ALLOWED_ORIGINS=
+    │  └─ JWT_SECRET=
     └─ 문서화: 환경변수 설정 가이드 작성 ✅ (docs/ENV_SETUP.md)
 
 [x] Task 0.6: CI/CD 및 배포 준비 (Vercel 배포는 마지막에)
@@ -128,11 +137,25 @@
     ├─ globals.css 작성 (기본 스타일)
     └─ next.config.mjs 확인
 
-[ ] Task 1.4: Backend 기본 패키지 설치
-    ├─ backend/ 폴더에서 package.json 생성
-    ├─ npm install @supabase/supabase-js (백엔드용)
-    ├─ npm install cors (CORS 설정)
-    └─ npm install dotenv (환경변수)
+[ ] Task 1.4: Backend 기본 구조 설정 (Spring Boot)
+    ├─ backend/ 폴더에서 Spring Boot 프로젝트 초기화
+    ├─ pom.xml 생성 (Maven 의존성 관리)
+    │  ├─ Spring Boot Starter Web
+    │  ├─ Spring Boot Starter Security
+    │  ├─ Spring Boot Starter Validation
+    │  ├─ JWT 라이브러리 (jjwt)
+    │  ├─ WebClient (Supabase API 호출용)
+    │  └─ Lombok
+    ├─ application.yml 설정
+    │  ├─ 서버 포트: 8080
+    │  ├─ Supabase 설정
+    │  └─ CORS 설정
+    └─ 기본 패키지 구조 생성
+       ├─ com.softdinner.controller
+       ├─ com.softdinner.service
+       ├─ com.softdinner.repository
+       ├─ com.softdinner.model
+       └─ com.softdinner.config
 
 [ ] Task 1.5: Git 커밋 (첫 번째 브랜치)
     ├─ git checkout -b feature/task-bundle-1
@@ -271,7 +294,7 @@
 
 **AI 작업량**: ⭐⭐⭐⭐⭐ (높음)  
 **예상 시간**: 3~3.5시간  
-**폴더 위치**: `frontend/src/pages/auth/`, `backend/src/pages/api/auth/`
+**폴더 위치**: `frontend/app/auth/`, `backend/src/main/java/com/softdinner/controller/auth/`
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -280,38 +303,46 @@
 └─────────────────────────────────────────────────┘
 
 [ ] Task 3.1: Supabase Auth 초기 설정
-    ├─ frontend/src/lib/supabase.client.js 작성
+    ├─ frontend/lib/supabase.client.js 작성
     │  └─ createClient() 설정
-    ├─ backend/src/lib/supabase.server.js 작성
-    │  └─ 서버측 클라이언트 설정
+    ├─ backend/src/main/java/com/softdinner/config/SupabaseConfig.java 작성
+    │  └─ WebClient 설정 (Supabase API 호출용)
     └─ Supabase Auth 활성화 (이메일/비밀번호 인증)
 
 [ ] Task 3.2: 회원가입 페이지 (고객/staff 역할 선택) ⭐
-    ├─ frontend/src/pages/auth/signup.js (페이지)
-    ├─ frontend/src/components/auth/SignupForm.jsx (컴포넌트)
+    ├─ frontend/app/auth/page.jsx (페이지 - 로그인/회원가입 통합)
+    ├─ frontend/components/auth/SignupForm.jsx (컴포넌트)
     │  ├─ 이메일, 비밀번호, 이름, 전화, 주소 입력
     │  ├─ 역할 선택 드롭다운 ⭐
     │  │  ├─ customer (고객)
     │  │  └─ staff (스태프)
     │  └─ 유효성 검증
-    ├─ backend/src/pages/api/auth/signup.js (POST)
-    │  ├─ Supabase Auth 회원가입
+    ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
+    │  ├─ @PostMapping("/api/auth/signup")
+    │  ├─ AuthService.signup() 호출
+    │  └─ ResponseEntity 반환
+    ├─ backend/src/main/java/com/softdinner/service/AuthService.java
+    │  ├─ Supabase Auth 회원가입 처리
     │  ├─ users 테이블에 역할 저장 ⭐
-    │  └─ 응답: 회원가입 성공 정보
-    └─ frontend/src/utils/validators.js (이메일, 비밀번호 검증)
+    │  └─ 회원가입 성공 정보 반환
+    └─ frontend/lib/validators.js (이메일, 비밀번호 검증)
 
 [ ] Task 3.3: 로그인 페이지 (단일 페이지, 자동 역할 구분) ⭐⭐⭐
-    ├─ frontend/src/pages/auth/login.js (페이지)
-    ├─ frontend/src/components/auth/LoginForm.jsx (컴포넌트)
+    ├─ frontend/app/auth/page.jsx (페이지 - 로그인/회원가입 통합)
+    ├─ frontend/components/auth/LoginForm.jsx (컴포넌트)
     │  ├─ 이메일, 비밀번호 입력 필드
     │  ├─ 고객/staff 선택 옵션 없음 (자동 구분) ⭐
     │  └─ "로그인" 버튼
-    ├─ backend/src/pages/api/auth/login.js (POST) ⭐
+    ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
+    │  ├─ @PostMapping("/api/auth/login")
+    │  ├─ AuthService.login() 호출
+    │  └─ ResponseEntity 반환
+    ├─ backend/src/main/java/com/softdinner/service/AuthService.java
     │  ├─ Supabase Auth 로그인 처리
     │  ├─ users 테이블에서 역할(role) 조회 ⭐
     │  └─ 응답: { user, role: 'customer' | 'staff' }
     └─ 로그인 후 역할에 따라 자동 라우팅 ⭐
-       ├─ 'staff' → /staff/dashboard
+       ├─ 'staff' → /staff
        └─ 'customer' → /dashboard
 
 [ ] Task 3.4: 인증 상태 관리 (AuthContext)
@@ -329,19 +360,26 @@
        ├─ requiredRole 파라미터 지원 ⭐
        └─ 접근 권한 없으면 /auth/login으로 이동
 
-[ ] Task 3.5: 백엔드 인증 미들웨어
-    ├─ backend/src/middleware/auth.middleware.js
+[ ] Task 3.5: 백엔드 인증 미들웨어 (Spring Security)
+    ├─ backend/src/main/java/com/softdinner/config/SecurityConfig.java
+    │  ├─ JWT 필터 설정
+    │  ├─ CORS 설정
+    │  └─ 보안 규칙 설정
+    ├─ backend/src/main/java/com/softdinner/security/JwtAuthenticationFilter.java
     │  ├─ Authorization 헤더에서 JWT 토큰 추출
     │  ├─ Supabase 토큰 검증
-    │  ├─ req.user에 사용자 정보 추가
-    │  └─ 모든 보호된 API에서 사용
-    └─ 사용: export default verifyAuth(handler)
+    │  └─ SecurityContext에 사용자 정보 추가
+    └─ @PreAuthorize 어노테이션으로 보호된 API 제어
 
 [ ] Task 3.6: 현재 사용자 정보 API
-    ├─ backend/src/pages/api/auth/me.js (GET)
+    ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
+    │  ├─ @GetMapping("/api/auth/me")
+    │  ├─ @PreAuthorize("isAuthenticated()")
+    │  └─ AuthService.getCurrentUser() 호출
+    ├─ backend/src/main/java/com/softdinner/service/AuthService.java
     │  ├─ 현재 사용자 정보 조회
     │  ├─ role, loyalty_tier 등 포함
-    │  └─ 미들웨어: verifyAuth() 필수
+    │  └─ UserDTO 반환
     └─ 프론트엔드에서 AuthContext 초기화 시 호출
 
 [ ] Task 3.7: Zustand 상태 관리 (선택사항 강화)
@@ -353,7 +391,9 @@
     └─ Redux DevTools 통합 (디버깅용)
 
 [ ] Task 3.8: 로그아웃 기능
-    ├─ backend/src/pages/api/auth/logout.js (POST)
+    ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
+    │  ├─ @PostMapping("/api/auth/logout")
+    │  └─ 로그아웃 처리 (클라이언트에서 토큰 삭제)
     └─ frontend에서 useAuth() 훅으로 로그아웃 버튼 구현
 
 [ ] Task 3.9: Git 커밋 (인증 시스템)
@@ -369,7 +409,7 @@
 
 **AI 작업량**: ⭐⭐⭐ (중간 수준)  
 **예상 시간**: 2~2.5시간  
-**폴더 위치**: `frontend/src/pages/menu/`, `backend/src/pages/api/menus/`
+**폴더 위치**: `frontend/app/dinners/`, `backend/src/main/java/com/softdinner/controller/menu/`
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -378,18 +418,20 @@
 └─────────────────────────────────────────────────┘
 
 [ ] Task 4.1: 메뉴 조회 API
-    ├─ backend/src/pages/api/menus/index.js (GET)
-    │  ├─ dinners 테이블 전체 조회
-    │  └─ 각 디너의 메뉴 항목 포함
-    ├─ backend/src/pages/api/menus/[dinnerId].js (GET)
-    │  ├─ 특정 디너 상세 정보
-    │  ├─ 스타일, 메뉴 항목 포함
-    │  └─ Champagne Feast: Grand, Deluxe만 가능 제약 처리
-    ├─ backend/src/pages/api/menus/[dinnerId]/items.js (GET)
-    │  ├─ 디너별 모든 메뉴 항목 조회
-    │  ├─ 제약 조건 포함 (is_required, can_remove 등)
-    │  └─ 재료 정보 포함
-    └─ frontend/src/services/menu.service.js
+    ├─ backend/src/main/java/com/softdinner/controller/menu/MenuController.java
+    │  ├─ @GetMapping("/api/menus")
+    │  │  └─ 모든 디너 목록 조회
+    │  ├─ @GetMapping("/api/menus/{dinnerId}")
+    │  │  └─ 특정 디너 상세 정보
+    │  └─ @GetMapping("/api/menus/{dinnerId}/items")
+    │     └─ 디너별 메뉴 항목 조회
+    ├─ backend/src/main/java/com/softdinner/service/MenuService.java
+    │  ├─ findAllDinners(): 모든 디너 조회
+    │  ├─ findDinnerById(): 디너 상세 조회
+    │  └─ findMenuItemsByDinnerId(): 메뉴 항목 조회
+    ├─ backend/src/main/java/com/softdinner/repository/MenuRepository.java
+    │  └─ Supabase API 호출 (WebClient 사용)
+    └─ frontend/lib/services/menu.service.js
        └─ API 호출 서비스 함수
 
 [x] Task 4.2: 디너 목록 페이지
@@ -516,7 +558,7 @@
 
 **AI 작업량**: ⭐⭐⭐⭐ (중상 수준)  
 **예상 시간**: 2.5~3시간  
-**폴더 위치**: `frontend/src/pages/order/`, `backend/src/pages/api/orders/`
+**폴더 위치**: `frontend/app/order/`, `backend/src/main/java/com/softdinner/controller/order/`
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -541,35 +583,40 @@
     └─ "결제하기" 버튼
 
 [ ] Task 6.3: 주문 생성 API ⭐⭐
-    ├─ backend/src/pages/api/orders/index.js (POST)
-    ├─ 1️⃣ 사용자의 현재 loyalty_tier 조회
-    ├─ 2️⃣ 할인율 계산 (tier별)
-    │  ├─ bronze: 0%, silver: 5%, gold: 10%, platinum: 20%
-    │  └─ 기본 가격에서 할인액 자동 계산 ⭐
-    ├─ 3️⃣ orders 테이블에 저장
-    │  ├─ order_items (JSONB): 디너, 스타일, 커스터마이징
-    │  ├─ total_price, discount_applied, final_price
-    │  └─ delivery_date 저장 ⭐
-    ├─ 4️⃣ total_orders, total_spent 업데이트 ⭐
-    ├─ 5️⃣ loyalty_tier 자동 업그레이드 확인 ⭐⭐
-    │  ├─ updateLoyaltyTier() 함수 호출
-    │  ├─ 새 등급 결정
-    │  └─ 등급 변경 시 loyalty_history 기록
-    ├─ 6️⃣ loyalty_history에 할인 기록 저장 ⭐
-    ├─ 7️⃣ cooking_task 자동 생성 (요리 대기 상태)
+    ├─ backend/src/main/java/com/softdinner/controller/order/OrderController.java
+    │  ├─ @PostMapping("/api/orders")
+    │  ├─ @PreAuthorize("isAuthenticated()")
+    │  └─ OrderService.createOrder() 호출
+    ├─ backend/src/main/java/com/softdinner/service/OrderService.java
+    │  ├─ 1️⃣ 사용자의 현재 loyalty_tier 조회
+    │  ├─ 2️⃣ 할인율 계산 (tier별)
+    │  │  ├─ bronze: 0%, silver: 5%, gold: 10%, platinum: 20%
+    │  │  └─ 기본 가격에서 할인액 자동 계산 ⭐
+    │  ├─ 3️⃣ orders 테이블에 저장
+    │  │  ├─ order_items (JSONB): 디너, 스타일, 커스터마이징
+    │  │  ├─ total_price, discount_applied, final_price
+    │  │  └─ delivery_date 저장 ⭐
+    │  ├─ 4️⃣ total_orders, total_spent 업데이트 ⭐
+    │  ├─ 5️⃣ loyalty_tier 자동 업그레이드 확인 ⭐⭐
+    │  │  ├─ LoyaltyService.updateLoyaltyTier() 호출
+    │  │  ├─ 새 등급 결정
+    │  │  └─ 등급 변경 시 loyalty_history 기록
+    │  ├─ 6️⃣ loyalty_history에 할인 기록 저장 ⭐
+    │  ├─ 7️⃣ cooking_task 자동 생성 (요리 대기 상태)
+    │  └─ OrderResponseDTO 반환
     └─ 응답: { order, discount, loyaltyUpdate, message }
 
 [ ] Task 6.4: 단골 할인 자동 적용 로직 ⭐⭐⭐
-    ├─ backend/src/utils/loyaltyUtils.js
-    ├─ determineLoyaltyTier(totalOrders, totalSpent)
-    │  ├─ 주문 횟수와 지출액으로 등급 결정
-    │  └─ 가장 높은 기준을 만족하는 등급 반환
-    ├─ updateLoyaltyTier(userId, newOrders, newSpent)
-    │  ├─ 현재 등급과 새 등급 비교
-    │  ├─ 변경 시 loyalty_history 기록
-    │  └─ { changed: true/false, message }
-    ├─ getDiscountRateByTier(tier)
-    │  └─ tier별 할인율 반환
+    ├─ backend/src/main/java/com/softdinner/service/LoyaltyService.java
+    │  ├─ determineLoyaltyTier(totalOrders, totalSpent)
+    │  │  ├─ 주문 횟수와 지출액으로 등급 결정
+    │  │  └─ 가장 높은 기준을 만족하는 등급 반환
+    │  ├─ updateLoyaltyTier(userId, newOrders, newSpent)
+    │  │  ├─ 현재 등급과 새 등급 비교
+    │  │  ├─ 변경 시 loyalty_history 기록
+    │  │  └─ LoyaltyUpdateResult 반환
+    │  └─ getDiscountRateByTier(tier)
+    │     └─ tier별 할인율 반환
     └─ 주문 완료 후 자동 등급 업그레이드! ⭐
 
 [ ] Task 6.5: 단골 등급 자동 업그레이드 예시
@@ -600,7 +647,7 @@
 
 **AI 작업량**: ⭐⭐⭐ (중간 수준)  
 **예상 시간**: 1.5~2시간  
-**폴더 위치**: `frontend/src/pages/order/`, `backend/src/pages/api/orders/`
+**폴더 위치**: `frontend/app/dashboard/`, `backend/src/main/java/com/softdinner/controller/order/`
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -609,11 +656,15 @@
 └─────────────────────────────────────────────────┘
 
 [ ] Task 7.1: 주문 히스토리 조회 API
-    ├─ backend/src/pages/api/orders/index.js (GET)
+    ├─ backend/src/main/java/com/softdinner/controller/order/OrderController.java
+    │  ├─ @GetMapping("/api/orders")
+    │  ├─ @PreAuthorize("isAuthenticated()")
+    │  └─ OrderService.getUserOrders() 호출
+    ├─ backend/src/main/java/com/softdinner/service/OrderService.java
     │  ├─ 현재 사용자의 주문 목록 조회
     │  ├─ 최근순 정렬 (order_date DESC)
     │  └─ 각 주문: 주문시간, 디너명, 가격, 배달시간, 주소 ⭐
-    └─ frontend/src/services/order.service.js
+    └─ frontend/lib/services/order.service.js
 
 [x] Task 7.2: 주문 히스토리 페이지 UI ⭐
     ├─ frontend/app/dashboard/page.jsx (페이지)
@@ -644,12 +695,16 @@
     └─ 최근 할인 기록 5개
 
 [ ] Task 7.5: 백엔드 API 추가
-    ├─ backend/src/pages/api/users/loyalty.js (GET)
+    ├─ backend/src/main/java/com/softdinner/controller/user/UserController.java
+    │  ├─ @GetMapping("/api/users/loyalty")
+    │  ├─ @PreAuthorize("isAuthenticated()")
+    │  └─ LoyaltyService.getLoyaltyInfo() 호출
+    ├─ backend/src/main/java/com/softdinner/service/LoyaltyService.java
     │  ├─ 현재 사용자의 단골 정보 조회
     │  ├─ tier, totalOrders, totalSpent, discountRate
     │  ├─ nextTier 정보, 진행률
     │  └─ 최근 할인 기록 5개
-    └─ 미들웨어: verifyAuth() 필수
+    └─ LoyaltyInfoDTO 반환
 
 [ ] Task 7.6: Git 커밋 (주문 히스토리)
     ├─ git checkout -b feature/task-bundle-7
@@ -705,7 +760,7 @@
 
 **AI 작업량**: ⭐⭐⭐⭐ (중상 수준)  
 **예상 시간**: 2.5~3시간  
-**폴더 위치**: `frontend/src/pages/staff/`, `backend/src/pages/api/ingredients/`
+**폴더 위치**: `frontend/app/staff/ingredients/`, `backend/src/main/java/com/softdinner/controller/ingredient/`
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -733,18 +788,22 @@
     └─ 실시간 업데이트
 
 [ ] Task 9.3: 재료 API (스토어에서 제약 조건 정보 조회는 불필요)
-    ├─ backend/src/pages/api/ingredients/index.js (GET)
-    │  └─ 모든 재료 목록 (현재 재고)
-    ├─ backend/src/pages/api/ingredients/stock.js (POST) ⭐
-    │  ├─ 입고 처리
-    │  ├─ ingredients 테이블 업데이트 (quantity)
-    │  ├─ ingredient_logs 기록 저장
-    │  └─ 응답: 성공 메시지
-    ├─ backend/src/pages/api/ingredients/logs.js (GET, POST)
-    │  ├─ 입출고 기록 조회
-    │  └─ 이력 페이지용
-    ├─ frontend/src/services/ingredient.service.js
-    └─ frontend/src/hooks/useIngredients.js
+    ├─ backend/src/main/java/com/softdinner/controller/ingredient/IngredientController.java
+    │  ├─ @GetMapping("/api/ingredients")
+    │  │  └─ 모든 재료 목록 (현재 재고)
+    │  ├─ @PostMapping("/api/ingredients/stock")
+    │  │  ├─ @PreAuthorize("hasRole('STAFF')")
+    │  │  └─ 입고 처리
+    │  └─ @GetMapping("/api/ingredients/logs")
+    │     └─ 입출고 기록 조회
+    ├─ backend/src/main/java/com/softdinner/service/IngredientService.java
+    │  ├─ getAllIngredients(): 모든 재료 조회
+    │  ├─ addStock(): 입고 처리
+    │  │  ├─ ingredients 테이블 업데이트 (quantity)
+    │  │  └─ ingredient_logs 기록 저장
+    │  └─ getIngredientLogs(): 입출고 기록 조회
+    ├─ frontend/lib/services/ingredient.service.js
+    └─ frontend/hooks/useIngredients.js
 
 [ ] Task 9.4: 입출고 기록 저장
     ├─ ingredient_logs 테이블 기록
@@ -764,7 +823,7 @@
 
 **AI 작업량**: ⭐⭐⭐⭐⭐ (높음 - 핵심)  
 **예상 시간**: 3~3.5시간  
-**폴더 위치**: `frontend/src/pages/staff/`, `backend/src/pages/api/cooking_tasks/`
+**폴더 위치**: `frontend/app/staff/cooking/`, `backend/src/main/java/com/softdinner/controller/cooking/`
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -789,30 +848,37 @@
     └─ 상태별 버튼 활성/비활성
 
 [ ] Task 10.3: 요리 상태 업데이트 API
-    ├─ backend/src/pages/api/cooking_tasks/index.js (GET)
-    │  └─ 해당 staff의 요리 작업 목록
-    ├─ backend/src/pages/api/cooking_tasks/[id]/start.js (POST)
-    │  └─ 상태: waiting → in_progress
-    ├─ backend/src/pages/api/cooking_tasks/[id]/complete.js (POST) ⭐⭐
-    │  ├─ 상태: in_progress → completed
-    │  ├─ 타임스탬프 기록 (completed_at)
-    │  └─ 다음: 재료 자동 차감 호출!
-    ├─ frontend/src/services/cooking.service.js
-    └─ frontend/src/hooks/useCookingTasks.js
+    ├─ backend/src/main/java/com/softdinner/controller/cooking/CookingTaskController.java
+    │  ├─ @GetMapping("/api/cooking-tasks")
+    │  │  ├─ @PreAuthorize("hasRole('STAFF')")
+    │  │  └─ 해당 staff의 요리 작업 목록
+    │  ├─ @PostMapping("/api/cooking-tasks/{id}/start")
+    │  │  └─ 상태: waiting → in_progress
+    │  └─ @PostMapping("/api/cooking-tasks/{id}/complete") ⭐⭐
+    │     ├─ 상태: in_progress → completed
+    │     ├─ 타임스탬프 기록 (completed_at)
+    │     └─ 다음: 재료 자동 차감 호출!
+    ├─ backend/src/main/java/com/softdinner/service/CookingTaskService.java
+    │  ├─ getCookingTasksByStaff(): 작업 목록 조회
+    │  ├─ startCooking(): 요리 시작
+    │  └─ completeCooking(): 요리 완료 (재료 차감 포함)
+    ├─ frontend/lib/services/cooking.service.js
+    └─ frontend/hooks/useCookingTasks.js
 
 [ ] Task 10.4: 요리 완료 시 재료 자동 차감 (매우 중요!) ⭐⭐⭐
-    ├─ backend/src/utils/ingredientDeduction.js
-    ├─ deductIngredientsForOrder(orderId) 함수
-    ├─ 1️⃣ order_items에서 주문 정보 조회
-    ├─ 2️⃣ 디너의 기본 재료 및 수량 조회
-    ├─ 3️⃣ 커스터마이징 아이템별 재료 수량 추가 계산 ⭐
-    │  └─ 예: 샴페인 2병이면 샴페인 재료 2개 차감
-    ├─ 4️⃣ ingredients 테이블에서 각 재료 수량 감소
-    ├─ 5️⃣ ingredient_logs에 출고 기록 저장
-    │  ├─ action: 'out'
-    │  ├─ order_id 참고
-    │  └─ 차감된 수량 기록
-    └─ 6️⃣ 응답: 차감 완료
+    ├─ backend/src/main/java/com/softdinner/service/IngredientDeductionService.java
+    │  ├─ deductIngredientsForOrder(orderId) 메서드
+    │  ├─ 1️⃣ order_items에서 주문 정보 조회
+    │  ├─ 2️⃣ 디너의 기본 재료 및 수량 조회
+    │  ├─ 3️⃣ 커스터마이징 아이템별 재료 수량 추가 계산 ⭐
+    │  │  └─ 예: 샴페인 2병이면 샴페인 재료 2개 차감
+    │  ├─ 4️⃣ ingredients 테이블에서 각 재료 수량 감소
+    │  ├─ 5️⃣ ingredient_logs에 출고 기록 저장
+    │  │  ├─ action: 'out'
+    │  │  ├─ order_id 참고
+    │  │  └─ 차감된 수량 기록
+    │  └─ 6️⃣ DeductionResult 반환
+    └─ CookingTaskService.completeCooking()에서 호출
 
 [ ] Task 10.5: 재료 차감 예시 (데모)
     ├─ 샴페인 축제 디너 주문 (커스터마이징 포함)
@@ -849,7 +915,7 @@
 
 **AI 작업량**: ⭐⭐⭐⭐ (중상 수준)  
 **예상 시간**: 2.5~3시간  
-**폴더 위치**: `frontend/src/pages/staff/`, `backend/src/pages/api/delivery_tasks/`
+**폴더 위치**: `frontend/app/staff/delivery/`, `backend/src/main/java/com/softdinner/controller/delivery/`
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -874,16 +940,22 @@
     └─ 상태별 버튼 활성/비활성
 
 [ ] Task 11.3: 배달 상태 업데이트 API
-    ├─ backend/src/pages/api/delivery_tasks/index.js (GET)
-    │  └─ 해당 staff의 배달 작업 목록
-    ├─ backend/src/pages/api/delivery_tasks/[id]/start.js (POST)
-    │  └─ 상태: pending → in_transit
-    ├─ backend/src/pages/api/delivery_tasks/[id]/complete.js (POST) ⭐
-    │  ├─ 상태: in_transit → completed
-    │  ├─ orders 테이블 delivery_status 업데이트
-    │  └─ 배송 완료 시간 기록
-    ├─ frontend/src/services/delivery.service.js
-    └─ frontend/src/hooks/useDeliveryTasks.js
+    ├─ backend/src/main/java/com/softdinner/controller/delivery/DeliveryTaskController.java
+    │  ├─ @GetMapping("/api/delivery-tasks")
+    │  │  ├─ @PreAuthorize("hasRole('STAFF')")
+    │  │  └─ 해당 staff의 배달 작업 목록
+    │  ├─ @PostMapping("/api/delivery-tasks/{id}/start")
+    │  │  └─ 상태: pending → in_transit
+    │  └─ @PostMapping("/api/delivery-tasks/{id}/complete") ⭐
+    │     ├─ 상태: in_transit → completed
+    │     ├─ orders 테이블 delivery_status 업데이트
+    │     └─ 배송 완료 시간 기록
+    ├─ backend/src/main/java/com/softdinner/service/DeliveryTaskService.java
+    │  ├─ getDeliveryTasksByStaff(): 작업 목록 조회
+    │  ├─ startDelivery(): 배달 시작
+    │  └─ completeDelivery(): 배달 완료
+    ├─ frontend/lib/services/delivery.service.js
+    └─ frontend/hooks/useDeliveryTasks.js
 
 [ ] Task 11.4: 배달 페이지 스타일
     ├─ frontend/src/styles/delivery.module.css
@@ -901,7 +973,7 @@
 
 **AI 작업량**: ⭐⭐⭐⭐⭐ (높음 - 복잡)  
 **예상 시간**: 3.5~4시간  
-**폴더 위치**: `frontend/src/pages/order/`, `frontend/src/components/voice/`, `backend/src/pages/api/voice/`
+**폴더 위치**: `frontend/app/order/voice/`, `frontend/components/voice/`, `backend/src/main/java/com/softdinner/controller/voice/`
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -984,13 +1056,19 @@
        └─ 주문 완료 (Bundle 6의 주문 생성 로직 호출)
 
 [ ] Task 12.6: 음성 주문 API
-    ├─ backend/src/pages/api/voice/process.js (POST)
+    ├─ backend/src/main/java/com/softdinner/controller/voice/VoiceOrderController.java
+    │  ├─ @PostMapping("/api/voice/process")
+    │  ├─ @PreAuthorize("isAuthenticated()")
+    │  └─ VoiceOrderService.processVoiceCommand() 호출
+    ├─ backend/src/main/java/com/softdinner/service/VoiceOrderService.java
     │  ├─ 음성 텍스트 수신
-    │  ├─ voiceCommandParser로 파싱
+    │  ├─ VoiceCommandParser로 파싱
     │  ├─ 주문 데이터 누적
     │  ├─ 다음 프롬프트 결정 (state machine)
-    │  └─ 응답: { nextPrompt, currentOrder, confidence }
-    ├─ frontend/src/services/voice.service.js
+    │  └─ VoiceOrderResponseDTO 반환
+    ├─ backend/src/main/java/com/softdinner/util/VoiceCommandParser.java
+    │  └─ 음성 명령어 파싱 로직
+    ├─ frontend/lib/services/voice.service.js
     └─ 음성 주문 히스토리 저장 (voice_orders 테이블)
 
 [ ] Task 12.7: State Machine (음성 주문 상태 관리)
@@ -1192,10 +1270,15 @@
     │  ├─ GitHub 저장소 선택
     │  └─ 프로젝트 추가
     ├─ 환경변수 설정 ⭐
-    │  ├─ NEXT_PUBLIC_SUPABASE_URL
-    │  ├─ NEXT_PUBLIC_SUPABASE_ANON_KEY
-    │  ├─ SUPABASE_SERVICE_ROLE_KEY (백엔드용)
-    │  └─ 기타 API 키
+    │  ├─ Frontend (Vercel):
+    │  │  ├─ NEXT_PUBLIC_SUPABASE_URL
+    │  │  ├─ NEXT_PUBLIC_SUPABASE_ANON_KEY
+    │  │  └─ NEXT_PUBLIC_API_URL (Spring Boot API URL)
+    │  └─ Backend (별도 배포):
+    │     ├─ SUPABASE_URL
+    │     ├─ SUPABASE_SERVICE_ROLE_KEY
+    │     ├─ CORS_ALLOWED_ORIGINS
+    │     └─ JWT_SECRET
     ├─ Build 설정 확인
     │  ├─ Build command: npm run build
     │  ├─ Output directory: .next
@@ -1381,22 +1464,46 @@ softdinner/
 │   ├── Dockerfile.frontend (추후 생성)
 │   └── .env.example (추후 생성)
 │
-├── 📁 BACKEND/
-│   ├── src/pages/api/ (Next.js API Routes)
-│   │   ├── auth/ (회원가입, 로그인, 현재사용자 - 추후 생성)
-│   │   ├── users/ (사용자 정보, 단골 정보 - 추후 생성)
-│   │   ├── menus/ (메뉴, 디너, 스타일, 항목 - 추후 생성)
-│   │   ├── orders/ (주문 생성, 조회, 수정 - 추후 생성)
-│   │   ├── ingredients/ (재료 조회, 입고, 로그 - 추후 생성)
-│   │   ├── cooking_tasks/ (요리 작업 관리 & 재료 차감 - 추후 생성)
-│   │   ├── delivery_tasks/ (배달 작업 관리 - 추후 생성)
-│   │   ├── payments/ (결제 처리 - 추후 생성)
-│   │   └── voice/ (음성 주문 처리 - 추후 생성)
-│   ├── src/middleware/ (인증, 에러 처리 - 추후 생성)
-│   ├── src/utils/ (loyaltyUtils, ingredientDeduction 등 - 추후 생성)
-│   ├── src/lib/ (supabase.server - 추후 생성)
-│   ├── package.json
-│   ├── Dockerfile.backend (추후 생성)
+├── 📁 BACKEND/ (Spring Boot)
+│   ├── src/main/java/com/softdinner/
+│   │   ├── controller/ (REST API 컨트롤러)
+│   │   │   ├── auth/ (AuthController - 회원가입, 로그인, 현재사용자)
+│   │   │   ├── user/ (UserController - 사용자 정보, 단골 정보)
+│   │   │   ├── menu/ (MenuController - 메뉴, 디너, 스타일, 항목)
+│   │   │   ├── order/ (OrderController - 주문 생성, 조회, 수정)
+│   │   │   ├── ingredient/ (IngredientController - 재료 조회, 입고, 로그)
+│   │   │   ├── cooking/ (CookingTaskController - 요리 작업 관리 & 재료 차감)
+│   │   │   ├── delivery/ (DeliveryTaskController - 배달 작업 관리)
+│   │   │   └── voice/ (VoiceOrderController - 음성 주문 처리)
+│   │   ├── service/ (비즈니스 로직)
+│   │   │   ├── AuthService.java
+│   │   │   ├── OrderService.java
+│   │   │   ├── LoyaltyService.java
+│   │   │   ├── IngredientService.java
+│   │   │   ├── IngredientDeductionService.java
+│   │   │   ├── CookingTaskService.java
+│   │   │   ├── DeliveryTaskService.java
+│   │   │   └── VoiceOrderService.java
+│   │   ├── repository/ (데이터 접근 - Supabase API 호출)
+│   │   │   └── SupabaseRepository.java
+│   │   ├── model/ (DTO, Entity)
+│   │   │   ├── dto/ (Request/Response DTO)
+│   │   │   └── entity/ (도메인 모델)
+│   │   ├── config/ (설정)
+│   │   │   ├── SecurityConfig.java
+│   │   │   ├── WebConfig.java
+│   │   │   └── SupabaseConfig.java
+│   │   ├── security/ (보안)
+│   │   │   └── JwtAuthenticationFilter.java
+│   │   └── util/ (유틸리티)
+│   │       ├── VoiceCommandParser.java
+│   │       └── LoyaltyUtils.java
+│   ├── src/main/resources/
+│   │   ├── application.yml
+│   │   ├── application-dev.yml
+│   │   └── application-prod.yml
+│   ├── pom.xml (Maven 의존성)
+│   ├── Dockerfile
 │   └── .env.example
 │
 ├── 📁 DATABASE/
