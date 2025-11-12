@@ -80,11 +80,25 @@ public class OrderRepository {
 
     /**
      * 디너 정보 조회
+     * dinnerId가 UUID 형식이면 id로, 아니면 name으로 조회
+     * 프론트엔드에서 전달하는 이름을 데이터베이스의 실제 이름으로 매핑
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getDinnerById(String dinnerId) {
+        // UUID 형식인지 확인 (간단한 체크: 하이픈 포함 여부)
+        boolean isUuid = dinnerId != null && dinnerId.length() == 36 && dinnerId.contains("-");
+        
+        String queryParam;
+        if (isUuid) {
+            queryParam = "id=eq." + dinnerId;
+        } else {
+            // 프론트엔드 이름을 데이터베이스 이름으로 매핑
+            String dbName = mapDinnerNameToDb(dinnerId);
+            queryParam = "name=eq." + dbName;
+        }
+        
         List<Map<String, Object>> result = supabaseWebClient.get()
-                .uri(supabaseUrl + "/rest/v1/dinners?id=eq." + dinnerId)
+                .uri(supabaseUrl + "/rest/v1/dinners?" + queryParam)
                 .header("apikey", supabaseServiceRoleKey)
                 .retrieve()
                 .bodyToMono(List.class)
@@ -92,14 +106,38 @@ public class OrderRepository {
 
         return result != null && !result.isEmpty() ? result.get(0) : null;
     }
+    
+    /**
+     * 프론트엔드에서 사용하는 디너 이름을 데이터베이스의 실제 이름으로 매핑
+     */
+    private String mapDinnerNameToDb(String frontendName) {
+        if (frontendName == null) {
+            return null;
+        }
+        
+        // 프론트엔드 이름 -> 데이터베이스 이름 매핑
+        return switch (frontendName.toLowerCase()) {
+            case "valentine" -> "Valentine Dinner";
+            case "french" -> "French Dinner";
+            case "english" -> "English Dinner";
+            case "champagne" -> "Champagne Feast";
+            default -> frontendName; // 매핑되지 않으면 그대로 사용
+        };
+    }
 
     /**
      * 스타일 정보 조회
+     * styleId가 UUID 형식이면 id로, 아니면 name으로 조회
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getStyleById(String styleId) {
+        // UUID 형식인지 확인 (간단한 체크: 하이픈 포함 여부)
+        boolean isUuid = styleId != null && styleId.length() == 36 && styleId.contains("-");
+        
+        String queryParam = isUuid ? "id=eq." + styleId : "name=eq." + styleId;
+        
         List<Map<String, Object>> result = supabaseWebClient.get()
-                .uri(supabaseUrl + "/rest/v1/styles?id=eq." + styleId)
+                .uri(supabaseUrl + "/rest/v1/styles?" + queryParam)
                 .header("apikey", supabaseServiceRoleKey)
                 .retrieve()
                 .bodyToMono(List.class)
