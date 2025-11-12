@@ -153,7 +153,7 @@ export default function OrderSuccessPage() {
             variant="outline"
             className="flex-1 bg-transparent"
             size="lg"
-            onClick={() => router.push("/order/history")}
+            onClick={() => router.push("/dashboard")}
           >
             <Receipt className="w-4 h-4 mr-2" />
             주문 내역 보기
