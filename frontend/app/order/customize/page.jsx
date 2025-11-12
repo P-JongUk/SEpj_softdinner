@@ -549,7 +549,12 @@ export default function CustomizePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* 왼쪽: 커스터마이징 */}
           <div className="lg:col-span-2 space-y-4">
-            {items.map((item) => {
+            {items.length === 0 ? (
+              <Card className="p-6">
+                <p className="text-muted-foreground text-center">메뉴 항목을 불러오는 중...</p>
+              </Card>
+            ) : (
+              items.map((item) => {
               const currentQty = customizations[item.id] || 0
 
               return (
@@ -658,7 +663,7 @@ export default function CustomizePage() {
                   )}
                 </Card>
               )
-            })}
+            }))}
           </div>
 
           {/* 오른쪽: 주문 요약 */}

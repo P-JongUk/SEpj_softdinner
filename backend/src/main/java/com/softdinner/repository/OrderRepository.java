@@ -1,12 +1,15 @@
 package com.softdinner.repository;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Repository
 public class OrderRepository {
 
@@ -29,18 +32,36 @@ public class OrderRepository {
      */
     @SuppressWarnings({"unchecked", "null"})
     public Map<String, Object> createOrder(Map<String, Object> orderData) {
-        Map<String, Object>[] result = supabaseWebClient.post()
-                .uri(supabaseUrl + "/rest/v1/orders")
-                .header("Authorization", "Bearer " + supabaseServiceRoleKey)
-                .header("apikey", supabaseServiceRoleKey)
-                .header("Content-Type", "application/json")
-                .header("Prefer", "return=representation")
-                .bodyValue(orderData)
-                .retrieve()
-                .bodyToMono(Map[].class)
-                .block();
+        try {
+            Map<String, Object>[] result = supabaseWebClient.post()
+                    .uri(supabaseUrl + "/rest/v1/orders")
+                    .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                    .header("apikey", supabaseServiceRoleKey)
+                    .header("Content-Type", "application/json")
+                    .header("Prefer", "return=representation")
+                    .bodyValue(orderData)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
+                        return response.bodyToMono(String.class)
+                                .flatMap(body -> {
+                                    log.error("Error creating order: {} - {}", response.statusCode(), body);
+                                    return reactor.core.publisher.Mono.error(WebClientResponseException.create(
+                                            response.statusCode().value(),
+                                            response.statusCode().toString(),
+                                            response.headers().asHttpHeaders(),
+                                            body != null ? body.getBytes() : new byte[0],
+                                            java.nio.charset.StandardCharsets.UTF_8
+                                    ));
+                                });
+                    })
+                    .bodyToMono(Map[].class)
+                    .block();
 
-        return result != null && result.length > 0 ? result[0] : null;
+            return result != null && result.length > 0 ? result[0] : null;
+        } catch (Exception e) {
+            log.error("Error creating order: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create order: " + e.getMessage(), e);
+        }
     }
 
     /**

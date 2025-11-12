@@ -79,15 +79,20 @@ public class OrderService {
 
             Map<String, Object> orderData = new HashMap<>();
             orderData.put("user_id", userId);
-            orderData.put("delivery_date", request.getDeliveryDate().atZone(ZoneId.systemDefault()).toInstant());
+            // Instant를 ISO 8601 문자열로 변환 (Supabase가 TIMESTAMP WITH TIME ZONE을 기대)
+            String deliveryDateStr = request.getDeliveryDate().atZone(ZoneId.systemDefault()).toInstant().toString();
+            orderData.put("delivery_date", deliveryDateStr);
             orderData.put("delivery_address", request.getDeliveryAddress());
             orderData.put("order_items", orderItems);
-            orderData.put("total_price", subtotal);
-            orderData.put("discount_applied", discountAmount);
-            orderData.put("final_price", finalPrice);
+            // BigDecimal을 문자열로 변환 (Supabase DECIMAL 타입이 문자열을 기대할 수 있음)
+            orderData.put("total_price", subtotal.toString());
+            orderData.put("discount_applied", discountAmount.toString());
+            orderData.put("final_price", finalPrice.toString());
             orderData.put("payment_status", "completed"); // 간단한 버전에서는 바로 완료 처리
             orderData.put("delivery_status", "pending");
             orderData.put("cooking_status", "waiting");
+            
+            log.debug("Creating order with data: {}", orderData);
 
             // 6. 주문 저장
             Map<String, Object> savedOrder = orderRepository.createOrder(orderData);
