@@ -144,26 +144,49 @@ public class AuthService {
             String userId = (String) authResponse.get("id");
             log.info("User created successfully in auth.users with id: {}, email: {}", userId, request.getEmail());
 
-            // 1.5. Verify password and email_confirmed status
-            // Sometimes Admin API doesn't set password or email_confirmed correctly, so we update it explicitly
+            // 1.5. Verify and update user to ensure email_confirmed and password are set correctly
+            // Supabase Admin API sometimes doesn't set these correctly, so we update explicitly
             try {
-                Map<String, Object> userUpdateRequest = new HashMap<>();
-                userUpdateRequest.put("password", request.getPassword());
-                userUpdateRequest.put("email_confirmed", true); // Ensure email is confirmed (use email_confirmed, not email_confirm)
-                
-                supabaseWebClient.put()
+                // First, get the current user to check status
+                @SuppressWarnings("unchecked")
+                Map<String, Object> currentUser = supabaseWebClient.get()
                         .uri(supabaseUrl + "/auth/v1/admin/users/" + userId)
                         .header("Authorization", "Bearer " + supabaseServiceRoleKey)
                         .header("apikey", supabaseServiceRoleKey)
-                        .header("Content-Type", "application/json")
-                        .bodyValue(userUpdateRequest)
                         .retrieve()
                         .bodyToMono(Map.class)
                         .block();
                 
-                log.info("Password and email_confirmed updated for user: {}", userId);
+                if (currentUser != null) {
+                    Boolean emailConfirmed = (Boolean) currentUser.get("email_confirmed");
+                    log.info("Current user email_confirmed status: {}", emailConfirmed);
+                    
+                    // Update user with password and email_confirmed
+                    Map<String, Object> userUpdateRequest = new HashMap<>();
+                    userUpdateRequest.put("password", request.getPassword());
+                    userUpdateRequest.put("email_confirmed", true);
+                    userUpdateRequest.put("email_confirm", true); // Try both field names
+                    
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> updatedUser = supabaseWebClient.put()
+                            .uri(supabaseUrl + "/auth/v1/admin/users/" + userId)
+                            .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                            .header("apikey", supabaseServiceRoleKey)
+                            .header("Content-Type", "application/json")
+                            .bodyValue(userUpdateRequest)
+                            .retrieve()
+                            .bodyToMono(Map.class)
+                            .block();
+                    
+                    if (updatedUser != null) {
+                        Boolean newEmailConfirmed = (Boolean) updatedUser.get("email_confirmed");
+                        log.info("Updated user email_confirmed status: {}", newEmailConfirmed);
+                    }
+                    
+                    log.info("Password and email_confirmed updated for user: {}", userId);
+                }
             } catch (Exception e) {
-                log.warn("Failed to update password/email_confirmed for user {}: {}", userId, e.getMessage());
+                log.error("Failed to update password/email_confirmed for user {}: {}", userId, e.getMessage(), e);
                 // Continue anyway - might be set correctly
             }
 
