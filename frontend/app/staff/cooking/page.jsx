@@ -11,30 +11,9 @@ export default function StaffCookingPage() {
   const [tasks, setTasks] = useState([])
 
   useEffect(() => {
-    // 요리 작업 목록 로드
-    const mockTasks = [
-      {
-        id: 1,
-        orderId: "ORD-001",
-        customerName: "김철수",
-        dinnerName: "샴페인 축제 디너",
-        style: "디럭스",
-        customizations: ["샴페인 2병", "바게트빵 6개", "커피 제거"],
-        deliveryDate: "2024-12-02",
-        status: "waiting",
-      },
-      {
-        id: 2,
-        orderId: "ORD-002",
-        customerName: "이영희",
-        dinnerName: "발렌타인 디너",
-        style: "그랜드",
-        customizations: [],
-        deliveryDate: "2024-12-02",
-        status: "in_progress",
-      },
-    ]
-    setTasks(mockTasks)
+    // TODO: API에서 요리 작업 목록 로드 (Task Bundle 10에서 구현 예정)
+    // 현재는 빈 배열로 시작
+    setTasks([])
   }, [])
 
   const handleStart = (taskId) => {

@@ -824,10 +824,9 @@
     ├─ staff ID, 타임스탬프 기록 ✅
     └─ 투명한 이력 관리 ✅
 
-[ ] Task 9.5: Git 커밋 (재료 관리)
-    ├─ git checkout -b feature/task-bundle-9
-    ├─ git commit -m "feat: TASK BUNDLE 9 재료 입고 및 재고 관리"
-    └─ git push origin feature/task-bundle-9
+[x] Task 9.5: Git 커밋 (재료 관리)
+    ├─ git commit -m "feat: TASK BUNDLE 9 재료 입고 및 재고 관리 API 구현" ✅
+    └─ git push origin v2 ✅
 ```
 
 ---

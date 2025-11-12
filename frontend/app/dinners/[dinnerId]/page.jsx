@@ -8,108 +8,109 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Check, Loader2 } from "lucide-react"
 import Header from "@/components/common/header"
 import Footer from "@/components/common/footer"
+import { menuAPI } from "@/lib/services/menu.service"
+import { useAuth } from "@/context/AuthContext"
 
-// 디너 데이터 (실제로는 API에서 가져옴)
-const DINNERS_DATA = {
-  valentine: {
-    id: "valentine",
-    name: "발렌타인 디너",
-    description: "사랑하는 사람과 함께하는 로맨틱한 디너",
-    basePrice: 89000,
-    icon: "💝",
-    availableStyles: ["simple", "grand", "deluxe"],
-  },
-  french: {
-    id: "french",
-    name: "프렌치 디너",
-    description: "정통 프랑스 요리의 우아함",
-    basePrice: 120000,
-    icon: "🇫🇷",
-    availableStyles: ["simple", "grand", "deluxe"],
-  },
-  english: {
-    id: "english",
-    name: "잉글리시 디너",
-    description: "클래식한 영국 정통 요리",
-    basePrice: 95000,
-    icon: "🇬🇧",
-    availableStyles: ["simple", "grand", "deluxe"],
-  },
-  champagne: {
-    id: "champagne",
-    name: "샴페인 축제 디너",
-    description: "특별한 날을 위한 최고급 디너",
-    basePrice: 180000,
-    icon: "🍾",
-    availableStyles: ["grand", "deluxe"], // Simple 불가!
-  },
+// 아이콘 매핑
+const getDinnerIcon = (name) => {
+  const iconMap = {
+    "Valentine Dinner": "💝",
+    "French Dinner": "🇫🇷",
+    "English Dinner": "🇬🇧",
+    "Champagne Feast": "🍾",
+  }
+  return iconMap[name] || "🍽️"
 }
 
-// 스타일 정의
-const STYLES = {
-  simple: {
-    id: "simple",
-    name: "심플 스타일",
-    description: "기본적이면서도 완벽한 구성",
-    priceModifier: 0,
-    icon: "🍽️",
-  },
-  grand: {
-    id: "grand",
-    name: "그랜드 스타일",
-    description: "더 풍성하고 화려한 구성",
-    priceModifier: 10000,
-    icon: "✨",
-  },
-  deluxe: {
-    id: "deluxe",
-    name: "디럭스 스타일",
-    description: "최고급 프리미엄 구성",
-    priceModifier: 20000,
-    icon: "💎",
-  },
+const getStyleIcon = (name) => {
+  const iconMap = {
+    "simple": "🍽️",
+    "grand": "✨",
+    "deluxe": "💎",
+  }
+  return iconMap[name] || "🍽️"
 }
 
 export default function DinnerDetailPage() {
   const router = useRouter()
   const params = useParams()
   const dinnerId = params.dinnerId
+  const { user, loading: authLoading } = useAuth()
 
   const [dinner, setDinner] = useState(null)
+  const [styles, setStyles] = useState([])
   const [selectedStyle, setSelectedStyle] = useState(null)
   const [totalPrice, setTotalPrice] = useState(0)
-  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    // TODO: Supabase에서 실제 인증 상태 확인
-    const mockUser = {
-      id: "1",
-      email: "customer@example.com",
-      full_name: "홍길동",
-    }
-
-    if (!mockUser) {
+    if (!authLoading && !user) {
       router.push("/auth")
       return
     }
 
-    setUser(mockUser)
-
-    // 디너 데이터 로드
-    const dinnerData = DINNERS_DATA[dinnerId]
-    if (dinnerData) {
-      setDinner(dinnerData)
-      setTotalPrice(dinnerData.basePrice)
+    if (user && dinnerId) {
+      loadDinnerData()
     }
+  }, [user, authLoading, dinnerId, router])
 
-    setLoading(false)
-  }, [dinnerId, router])
+  const loadDinnerData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // 디너 정보 조회
+      const dinnerData = await menuAPI.getDinnerById(dinnerId)
+      if (!dinnerData) {
+        setError("디너를 찾을 수 없습니다")
+        return
+      }
+
+      // 디너 이름을 키로 변환
+      const nameKey = dinnerData.name.toLowerCase().replace(/\s+/g, '').replace('dinner', '')
+      const id = nameKey === 'french' ? 'french' : 
+                 nameKey === 'english' ? 'english' : 
+                 nameKey === 'valentine' ? 'valentine' : 
+                 nameKey === 'champagne' || nameKey === 'champagnefeast' ? 'champagne' : 
+                 dinnerData.id
+
+      const formattedDinner = {
+        id: id,
+        name: dinnerData.name,
+        description: dinnerData.description || "",
+        basePrice: Number(dinnerData.basePrice || 0),
+        icon: getDinnerIcon(dinnerData.name),
+        availableStyles: dinnerData.availableStyles || ["simple", "grand", "deluxe"],
+      }
+
+      setDinner(formattedDinner)
+      setTotalPrice(formattedDinner.basePrice)
+
+      // 스타일 목록 조회
+      const stylesData = await menuAPI.getAllStyles()
+      const formattedStyles = stylesData.map((style) => ({
+        id: style.id,
+        name: style.name,
+        description: style.details || "",
+        priceModifier: Number(style.priceModifier || 0),
+        icon: getStyleIcon(style.name.toLowerCase()),
+      }))
+      setStyles(formattedStyles)
+    } catch (err) {
+      console.error("디너 데이터 조회 실패:", err)
+      setError(err.message || "디너 정보를 불러오는데 실패했습니다.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleStyleSelect = (styleId) => {
     setSelectedStyle(styleId)
-    const style = STYLES[styleId]
-    setTotalPrice(dinner.basePrice + style.priceModifier)
+    const style = styles.find(s => s.id === styleId)
+    if (style && dinner) {
+      setTotalPrice(dinner.basePrice + style.priceModifier)
+    }
   }
 
   const handleNext = () => {
@@ -121,7 +122,7 @@ export default function DinnerDetailPage() {
     router.push(`/order/customize?dinner=${dinnerId}&style=${selectedStyle}`)
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <>
         <Header user={user} role="customer" />
@@ -133,12 +134,15 @@ export default function DinnerDetailPage() {
     )
   }
 
-  if (!dinner) {
+  if (error || !dinner) {
     return (
       <>
         <Header user={user} role="customer" />
         <div className="min-h-screen flex items-center justify-center">
-          <p className="text-muted-foreground">디너를 찾을 수 없습니다</p>
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">{error || "디너를 찾을 수 없습니다"}</p>
+            <Button onClick={() => router.push("/dinners")}>디너 목록으로</Button>
+          </div>
         </div>
         <Footer />
       </>
@@ -184,13 +188,14 @@ export default function DinnerDetailPage() {
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(STYLES).map(([styleId, style]) => {
-                const isAvailable = dinner.availableStyles.includes(styleId)
-                const isSelected = selectedStyle === styleId
+              {styles.map((style) => {
+                const isAvailable = dinner.availableStyles.includes(style.id) || 
+                                   dinner.availableStyles.includes(style.name.toLowerCase())
+                const isSelected = selectedStyle === style.id
 
                 return (
                   <Card
-                    key={styleId}
+                    key={style.id}
                     className={`p-6 cursor-pointer transition-all ${
                       !isAvailable
                         ? "opacity-40 cursor-not-allowed"
@@ -198,7 +203,7 @@ export default function DinnerDetailPage() {
                           ? "border-2 border-primary shadow-lg"
                           : "hover:shadow-md"
                     }`}
-                    onClick={() => isAvailable && handleStyleSelect(styleId)}
+                    onClick={() => isAvailable && handleStyleSelect(style.id)}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <span className="text-4xl">{style.icon}</span>

@@ -76,11 +76,10 @@ export default function DinnersPage() {
   }, [router])
 
   const handleSelectDinner = (dinner) => {
-    setSelectedDinner(dinner)
     router.push(`/dinners/${dinner.id}`)
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <>
         <Header user={user} role="customer" />
@@ -103,51 +102,52 @@ export default function DinnersPage() {
             <p className="text-lg text-muted-foreground">특별한 날을 위한 완벽한 디너를 선택하세요</p>
           </div>
 
+          {/* 에러 메시지 */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-center">
+              <p className="text-red-600">{error}</p>
+              <Button onClick={loadDinners} variant="outline" className="mt-2">다시 시도</Button>
+            </div>
+          )}
+
           {/* 디너 그리드 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {DINNERS.map((dinner) => (
-              <Card
-                key={dinner.id}
-                className="overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
-                onClick={() => handleSelectDinner(dinner)}
-              >
-                {/* 이미지 */}
-                <div className="relative h-48 bg-gradient-to-br from-primary/10 to-primary/5">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-8xl">{dinner.icon}</span>
-                  </div>
-                </div>
-
-                {/* 내용 */}
-                <div className="p-6">
-                  <h3 className="text-2xl font-bold mb-2">{dinner.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{dinner.description}</p>
-
-                  {/* 기본 가격 */}
-                  <div className="mb-4">
-                    <span className="text-sm text-muted-foreground">기본 가격</span>
-                    <p className="text-2xl font-bold text-primary">₩{dinner.basePrice.toLocaleString()}</p>
+          {dinners.length === 0 && !loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">디너가 없습니다</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {dinners.map((dinner) => (
+                <Card
+                  key={dinner.id}
+                  className="overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
+                  onClick={() => handleSelectDinner(dinner)}
+                >
+                  {/* 이미지 */}
+                  <div className="relative h-48 bg-gradient-to-br from-primary/10 to-primary/5">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-8xl">{dinner.icon}</span>
+                    </div>
                   </div>
 
-                  {/* 포함 항목 */}
-                  <div className="mb-4">
-                    <p className="text-xs text-muted-foreground mb-2">기본 포함:</p>
-                    <ul className="text-xs space-y-1">
-                      {dinner.defaultItems.slice(0, 3).map((item, idx) => (
-                        <li key={idx} className="flex items-center gap-2">
-                          <span className="w-1 h-1 rounded-full bg-primary"></span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  {/* 내용 */}
+                  <div className="p-6">
+                    <h3 className="text-2xl font-bold mb-2">{dinner.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{dinner.description}</p>
 
-                  {/* 버튼 */}
-                  <Button className="w-full group-hover:bg-primary/90">선택하기</Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+                    {/* 기본 가격 */}
+                    <div className="mb-4">
+                      <span className="text-sm text-muted-foreground">기본 가격</span>
+                      <p className="text-2xl font-bold text-primary">₩{dinner.basePrice.toLocaleString()}</p>
+                    </div>
+
+                    {/* 버튼 */}
+                    <Button className="w-full group-hover:bg-primary/90">선택하기</Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* 안내 메시지 */}
           <div className="mt-12 text-center">

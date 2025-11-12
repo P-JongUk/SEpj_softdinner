@@ -11,28 +11,9 @@ export default function StaffDeliveryPage() {
   const [tasks, setTasks] = useState([])
 
   useEffect(() => {
-    // 배달 작업 목록 로드
-    const mockTasks = [
-      {
-        id: 1,
-        orderId: "ORD-001",
-        customerName: "김철수",
-        deliveryAddress: "서울시 강남구 테헤란로 123",
-        deliveryDate: "2024-12-02",
-        dinnerName: "샴페인 축제 디너",
-        status: "pending",
-      },
-      {
-        id: 2,
-        orderId: "ORD-002",
-        customerName: "이영희",
-        deliveryAddress: "서울시 서초구 강남대로 456",
-        deliveryDate: "2024-12-02",
-        dinnerName: "발렌타인 디너",
-        status: "in_transit",
-      },
-    ]
-    setTasks(mockTasks)
+    // TODO: API에서 배달 작업 목록 로드 (Task Bundle 11에서 구현 예정)
+    // 현재는 빈 배열로 시작
+    setTasks([])
   }, [])
 
   const handleStart = (taskId) => {
