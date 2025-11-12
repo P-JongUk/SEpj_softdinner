@@ -345,7 +345,21 @@ export default function DashboardPage() {
                     )}
 
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="text-2xl font-bold text-primary">총 {Number(order.total_price || 0).toLocaleString()}원</div>
+                      <div>
+                        <div className="text-2xl font-bold text-primary">
+                          총 {Number(order.total_price || 0).toLocaleString()}원
+                        </div>
+                        {order.discount_applied > 0 && (
+                          <div className="text-sm text-muted-foreground mt-1">
+                            할인: -{Number(order.discount_applied || 0).toLocaleString()}원
+                            {order.original_price > 0 && (
+                              <span className="ml-2 line-through">
+                                {Number(order.original_price || 0).toLocaleString()}원
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => handleReorder(order)} disabled={reordering === order.id}>
                           {reordering === order.id ? (
