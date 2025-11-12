@@ -318,6 +318,14 @@ public class AuthService {
             String userId = (String) user.get("id");
             String accessToken = (String) authResponse.get("access_token");
             String refreshToken = (String) authResponse.get("refresh_token");
+            
+            log.info("Login successful for user: {}, accessToken present: {}, refreshToken present: {}", 
+                    userId, accessToken != null, refreshToken != null);
+            
+            if (accessToken == null || refreshToken == null) {
+                log.error("Tokens are null in login response: accessToken={}, refreshToken={}", accessToken, refreshToken);
+                throw new RuntimeException("로그인 응답에 토큰이 없습니다.");
+            }
 
             // 2. Get user data from users table
             @SuppressWarnings("unchecked")

@@ -74,21 +74,27 @@ export default function AuthPage() {
         password
       })
 
+      console.log('Login response:', response) // 디버깅용
+
       // 토큰 저장
       if (response.accessToken) {
         localStorage.setItem('accessToken', response.accessToken)
         if (response.refreshToken) {
           localStorage.setItem('refreshToken', response.refreshToken)
         }
-      }
-
-      // 역할에 따라 자동 라우팅
-      if (response.role === 'staff') {
-        router.push('/staff')
+        
+        // 역할에 따라 자동 라우팅
+        if (response.role === 'staff') {
+          router.push('/staff')
+        } else {
+          router.push('/dashboard')
+        }
       } else {
-        router.push('/dashboard')
+        console.error('No accessToken in response:', response)
+        setError('로그인 응답에 토큰이 없습니다. 다시 시도해주세요.')
       }
     } catch (err) {
+      console.error('Login error:', err)
       setError(err.message || "로그인 중 오류가 발생했습니다.")
     } finally {
       setLoading(false)
