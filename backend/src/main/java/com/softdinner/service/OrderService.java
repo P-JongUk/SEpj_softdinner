@@ -157,6 +157,7 @@ public class OrderService {
     /**
      * 사용자의 주문 목록 조회
      */
+    @SuppressWarnings("unchecked")
     public List<OrderHistoryDTO> getUserOrders(String userId) {
         try {
             List<Map<String, Object>> orders = orderRepository.getUserOrders(userId);
