@@ -142,6 +142,29 @@ public class AuthService {
             }
 
             String userId = (String) authResponse.get("id");
+            log.info("User created successfully in auth.users with id: {}, email: {}", userId, request.getEmail());
+
+            // 1.5. Verify password was set correctly by attempting to update it
+            // Sometimes Admin API doesn't set password correctly, so we update it explicitly
+            try {
+                Map<String, Object> passwordUpdateRequest = new HashMap<>();
+                passwordUpdateRequest.put("password", request.getPassword());
+                
+                supabaseWebClient.put()
+                        .uri(supabaseUrl + "/auth/v1/admin/users/" + userId)
+                        .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                        .header("apikey", supabaseServiceRoleKey)
+                        .header("Content-Type", "application/json")
+                        .bodyValue(passwordUpdateRequest)
+                        .retrieve()
+                        .bodyToMono(Map.class)
+                        .block();
+                
+                log.info("Password updated for user: {}", userId);
+            } catch (Exception e) {
+                log.warn("Failed to update password for user {}: {}", userId, e.getMessage());
+                // Continue anyway - password might be set correctly
+            }
 
             // 2. Create user record in users table
             Map<String, Object> userData = new HashMap<>();
@@ -200,6 +223,8 @@ public class AuthService {
 
     public AuthResponseDTO login(LoginRequestDTO request) {
         try {
+            log.info("Login attempt for email: {}", request.getEmail());
+            
             // 1. Authenticate with Supabase Auth
             Map<String, Object> authRequest = new HashMap<>();
             authRequest.put("email", request.getEmail());
@@ -227,6 +252,8 @@ public class AuthService {
                                         String errorCode = (String) errorMap.get("error_code");
                                         String errorMsg = (String) errorMap.get("msg");
                                         String errorDescription = (String) errorMap.get("error_description");
+                                        
+                                        log.error("Login error details - code: {}, msg: {}, description: {}", errorCode, errorMsg, errorDescription);
                                         
                                         // Handle specific error codes
                                         if ("invalid_credentials".equals(errorCode) || 
