@@ -179,18 +179,34 @@ public class OrderService {
                 
                 log.debug("Extracted dinnerName: {}, styleName: {}", dinnerName, styleName);
                 
-                // LocalDateTime 변환
+                // LocalDateTime 변환 (Supabase에서 문자열로 반환됨)
                 LocalDateTime orderDate = null;
                 LocalDateTime deliveryDate = null;
                 if (order.get("order_date") != null) {
-                    orderDate = ((java.time.Instant) order.get("order_date"))
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDateTime();
+                    Object orderDateObj = order.get("order_date");
+                    if (orderDateObj instanceof java.time.Instant) {
+                        orderDate = ((java.time.Instant) orderDateObj)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime();
+                    } else if (orderDateObj instanceof String) {
+                        // ISO 8601 문자열 파싱
+                        orderDate = java.time.Instant.parse((String) orderDateObj)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime();
+                    }
                 }
                 if (order.get("delivery_date") != null) {
-                    deliveryDate = ((java.time.Instant) order.get("delivery_date"))
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDateTime();
+                    Object deliveryDateObj = order.get("delivery_date");
+                    if (deliveryDateObj instanceof java.time.Instant) {
+                        deliveryDate = ((java.time.Instant) deliveryDateObj)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime();
+                    } else if (deliveryDateObj instanceof String) {
+                        // ISO 8601 문자열 파싱
+                        deliveryDate = java.time.Instant.parse((String) deliveryDateObj)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime();
+                    }
                 }
                 
                 return OrderHistoryDTO.builder()
