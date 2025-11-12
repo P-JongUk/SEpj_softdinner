@@ -95,15 +95,74 @@ export default function DashboardPage() {
           }
         }
         
+        // finalPrice 파싱 (BigDecimal 객체일 수 있음)
+        let finalPriceValue = 0
+        if (order.finalPrice !== null && order.finalPrice !== undefined) {
+          if (typeof order.finalPrice === 'number') {
+            finalPriceValue = order.finalPrice
+          } else if (typeof order.finalPrice === 'string') {
+            finalPriceValue = Number(order.finalPrice) || 0
+          } else if (order.finalPrice && typeof order.finalPrice === 'object') {
+            // BigDecimal 객체인 경우 (Java에서 온 경우)
+            // { value: "123.45", scale: 2 } 형식이거나 직접 숫자로 변환 가능한 경우
+            if (order.finalPrice.value !== undefined) {
+              finalPriceValue = Number(order.finalPrice.value) || 0
+            } else {
+              // 객체를 문자열로 변환 후 파싱
+              const priceStr = String(order.finalPrice)
+              finalPriceValue = Number(priceStr) || 0
+            }
+          }
+        }
+        
+        // 할인 정보도 함께 저장
+        let discountValue = 0
+        if (order.discountApplied !== null && order.discountApplied !== undefined) {
+          if (typeof order.discountApplied === 'number') {
+            discountValue = order.discountApplied
+          } else if (typeof order.discountApplied === 'string') {
+            discountValue = Number(order.discountApplied) || 0
+          } else if (order.discountApplied && typeof order.discountApplied === 'object') {
+            if (order.discountApplied.value !== undefined) {
+              discountValue = Number(order.discountApplied.value) || 0
+            } else {
+              discountValue = Number(String(order.discountApplied)) || 0
+            }
+          }
+        }
+        
+        // 원래 총액 (할인 전)
+        let totalPriceValue = 0
+        if (order.totalPrice !== null && order.totalPrice !== undefined) {
+          if (typeof order.totalPrice === 'number') {
+            totalPriceValue = order.totalPrice
+          } else if (typeof order.totalPrice === 'string') {
+            totalPriceValue = Number(order.totalPrice) || 0
+          } else if (order.totalPrice && typeof order.totalPrice === 'object') {
+            if (order.totalPrice.value !== undefined) {
+              totalPriceValue = Number(order.totalPrice.value) || 0
+            } else {
+              totalPriceValue = Number(String(order.totalPrice)) || 0
+            }
+          }
+        }
+        
+        console.log(`주문 ${order.id} 가격 정보:`, {
+          totalPrice: totalPriceValue,
+          discountApplied: discountValue,
+          finalPrice: finalPriceValue,
+          rawFinalPrice: order.finalPrice
+        })
+        
         return {
           id: order.id,
           dinner_name: order.dinnerName || order.orderItems?.dinner_name || "알 수 없음",
           dinner_style: order.styleName || order.orderItems?.style_name || "알 수 없음",
           created_at: orderDateStr,
           delivery_date: deliveryDateStr,
-          total_price: typeof order.finalPrice === 'number' 
-            ? order.finalPrice 
-            : (order.finalPrice ? Number(order.finalPrice) : 0),
+          total_price: finalPriceValue, // 할인 및 커스터마이징이 반영된 최종 가격
+          original_price: totalPriceValue, // 할인 전 총액
+          discount_applied: discountValue, // 할인 금액
           status: order.deliveryStatus || order.cookingStatus || order.paymentStatus || "pending",
           customizations: order.orderItems?.customizations || {},
         }
