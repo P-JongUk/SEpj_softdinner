@@ -11,6 +11,7 @@ import LoyaltyCard from "@/components/common/loyalty-card"
 import { useAuth } from "@/context/AuthContext"
 import { orderService } from "@/lib/services/order.service"
 import { apiRequest } from "@/lib/api"
+import { menuAPI } from "@/lib/services/menu.service"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -19,6 +20,7 @@ export default function DashboardPage() {
   const [orders, setOrders] = useState([])
   const [reordering, setReordering] = useState(null)
   const [loyaltyInfo, setLoyaltyInfo] = useState(null)
+  const [menuItemMap, setMenuItemMap] = useState({}) // 메뉴 항목 ID -> 이름 매핑
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -109,6 +111,29 @@ export default function DashboardPage() {
       
       console.log("변환된 주문 내역:", formattedOrders)
       setOrders(formattedOrders)
+      
+      // 각 주문의 디너에 대한 메뉴 항목을 로드하여 ID->이름 매핑 생성
+      const loadMenuItemNames = async () => {
+        const itemMap = {}
+        const uniqueDinners = [...new Set(formattedOrders.map(o => o.dinner_name))]
+        
+        for (const dinnerName of uniqueDinners) {
+          try {
+            const menuItems = await menuAPI.getMenuItemsByDinnerId(dinnerName)
+            if (menuItems && menuItems.length > 0) {
+              menuItems.forEach(item => {
+                itemMap[item.id] = item.name
+              })
+            }
+          } catch (error) {
+            console.error(`메뉴 항목 로드 실패 (${dinnerName}):`, error)
+          }
+        }
+        
+        setMenuItemMap(itemMap)
+      }
+      
+      loadMenuItemNames()
     } catch (error) {
       console.error("주문 내역 조회 실패:", error)
       console.error("에러 상세:", error.message, error.stack)
@@ -125,9 +150,16 @@ export default function DashboardPage() {
     // 여기서는 커스터마이징 정보를 세션이나 상태로 전달하고 체크아웃으로 이동
     console.log("[v0] 재주문:", order)
 
+    // 디너 이름을 키로 변환 (예: "French Dinner" -> "french")
+    const dinnerKey = order.dinner_name.toLowerCase().replace(/\s+/g, '').replace('dinner', '')
+    const dinnerId = dinnerKey === 'french' ? 'french' : 
+                     dinnerKey === 'english' ? 'english' : 
+                     dinnerKey === 'valentine' ? 'valentine' : 
+                     dinnerKey === 'champagne' ? 'champagne' : order.dinner_name
+    
     // 잠시 로딩 표시 후 커스터마이징 페이지로 이동
     setTimeout(() => {
-      router.push(`/order/customize?dinnerId=${order.dinner_name}&style=${order.dinner_style}&reorder=${order.id}`)
+      router.push(`/order/customize?dinner=${dinnerId}&style=${order.dinner_style}&reorder=${order.id}`)
     }, 500)
   }
 
@@ -239,13 +271,16 @@ export default function DashboardPage() {
                       <div className="bg-secondary/30 rounded-lg p-4 mb-4">
                         <h4 className="text-sm font-semibold text-foreground mb-2">커스터마이징</h4>
                         <div className="space-y-1">
-                          {Object.entries(order.customizations).map(([itemId, qty]) => (
-                            <div key={itemId} className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                항목 ID: {itemId} x {qty}
-                              </span>
-                            </div>
-                          ))}
+                          {Object.entries(order.customizations).map(([itemId, qty]) => {
+                            const itemName = menuItemMap[itemId] || itemId
+                            return (
+                              <div key={itemId} className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  {itemName} x {qty}
+                                </span>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -253,9 +288,6 @@ export default function DashboardPage() {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div className="text-2xl font-bold text-primary">총 {Number(order.total_price || 0).toLocaleString()}원</div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/orders/${order.id}`}>상세보기</Link>
-                        </Button>
                         <Button size="sm" onClick={() => handleReorder(order)} disabled={reordering === order.id}>
                           {reordering === order.id ? (
                             <>

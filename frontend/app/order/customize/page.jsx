@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Plus, Minus, X, Loader2 } from "lucide-react"
 import useOrderStore from "@/store/orderStore"
 import { menuAPI } from "@/lib/services/menu.service"
+import { orderService } from "@/lib/services/order.service"
 
 // 아이콘 매핑 (DB에 없는 필드이므로 이름으로 매핑)
 const getItemIcon = (name) => {
@@ -393,6 +394,7 @@ export default function CustomizePage() {
   const searchParams = useSearchParams()
   const dinnerId = searchParams.get("dinner")
   const styleId = searchParams.get("style")
+  const reorderId = searchParams.get("reorder")
 
   // Zustand store 사용
   const {
@@ -438,9 +440,42 @@ export default function CustomizePage() {
 
           setItems(formattedItems)
           
-          // Zustand store에 초기 커스터마이징 설정
-          if (formattedItems.length > 0) {
-            initializeCustomizations(formattedItems)
+          // 재주문인 경우 이전 주문의 커스터마이징 복원
+          if (reorderId && formattedItems.length > 0) {
+            try {
+              const orders = await orderService.getUserOrders()
+              const previousOrder = orders.find(o => o.id === reorderId)
+              
+              if (previousOrder && previousOrder.orderItems?.customizations) {
+                // 이전 주문의 커스터마이징을 복원
+                const previousCustomizations = previousOrder.orderItems.customizations
+                
+                // 먼저 기본값으로 초기화
+                initializeCustomizations(formattedItems)
+                
+                // 이전 커스터마이징 복원
+                Object.entries(previousCustomizations).forEach(([itemId, qty]) => {
+                  const item = formattedItems.find(i => i.id === itemId)
+                  if (item && qty > 0) {
+                    // 수량이 최소/최대 범위 내인지 확인
+                    const validQty = Math.max(item.minQuantity, Math.min(item.maxQuantity, qty))
+                    updateCustomization(itemId, { quantity: validQty })
+                  }
+                })
+              } else {
+                // 재주문 데이터가 없으면 기본값으로 초기화
+                initializeCustomizations(formattedItems)
+              }
+            } catch (error) {
+              console.error("재주문 데이터 로드 실패:", error)
+              // 실패 시 기본값으로 초기화
+              initializeCustomizations(formattedItems)
+            }
+          } else {
+            // 일반 주문인 경우 기본값으로 초기화
+            if (formattedItems.length > 0) {
+              initializeCustomizations(formattedItems)
+            }
           }
         } else {
           // API 응답이 비어있으면 fallback 사용
@@ -448,7 +483,33 @@ export default function CustomizePage() {
           const fallbackItems = MENU_ITEMS[dinnerId] || []
           setItems(fallbackItems)
           if (fallbackItems.length > 0) {
-            initializeCustomizations(fallbackItems)
+            // 재주문인 경우 이전 커스터마이징 복원 시도
+            if (reorderId) {
+              try {
+                const orders = await orderService.getUserOrders()
+                const previousOrder = orders.find(o => o.id === reorderId)
+                
+                if (previousOrder && previousOrder.orderItems?.customizations) {
+                  const previousCustomizations = previousOrder.orderItems.customizations
+                  initializeCustomizations(fallbackItems)
+                  
+                  Object.entries(previousCustomizations).forEach(([itemId, qty]) => {
+                    const item = fallbackItems.find(i => i.id === itemId)
+                    if (item && qty > 0) {
+                      const validQty = Math.max(item.minQuantity, Math.min(item.maxQuantity, qty))
+                      updateCustomization(itemId, { quantity: validQty })
+                    }
+                  })
+                } else {
+                  initializeCustomizations(fallbackItems)
+                }
+              } catch (error) {
+                console.error("재주문 데이터 로드 실패:", error)
+                initializeCustomizations(fallbackItems)
+              }
+            } else {
+              initializeCustomizations(fallbackItems)
+            }
           }
         }
       } catch (error) {
@@ -466,7 +527,7 @@ export default function CustomizePage() {
 
     loadMenuItems()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dinnerId])
+  }, [dinnerId, reorderId])
 
   useEffect(() => {
     // 로컬 가격 계산 (Zustand store와 동기화)

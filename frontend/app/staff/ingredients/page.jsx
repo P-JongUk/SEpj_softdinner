@@ -6,74 +6,76 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Package } from "lucide-react"
+import { Plus, Package, Loader2 } from "lucide-react"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
+import { useIngredients } from "@/hooks/useIngredients"
+import { ingredientAPI } from "@/lib/services/ingredient.service"
 
-// 7가지 재료 정의
-const INGREDIENTS = [
-  { id: "meat", name: "고기", icon: "🥩", unit: "kg" },
-  { id: "vegetables", name: "채소", icon: "🥬", unit: "kg" },
-  { id: "wine", name: "와인", icon: "🍷", unit: "병" },
-  { id: "champagne", name: "샴페인", icon: "🍾", unit: "병" },
-  { id: "coffee", name: "커피", icon: "☕", unit: "잔" },
-  { id: "baguette", name: "바게트빵", icon: "🥖", unit: "개" },
-  { id: "eggs", name: "계란", icon: "🥚", unit: "개" },
-]
+// 아이콘 매핑
+const getIngredientIcon = (name) => {
+  const iconMap = {
+    "고기": "🥩",
+    "채소": "🥬",
+    "와인": "🍷",
+    "샴페인": "🍾",
+    "커피": "☕",
+    "바게트빵": "🥖",
+    "계란": "🥚",
+  }
+  return iconMap[name] || "📦"
+}
 
 export default function StaffIngredientsPage() {
+  const { ingredients, loading, error, loadIngredients, addStock } = useIngredients()
   const [selectedIngredient, setSelectedIngredient] = useState("")
   const [quantity, setQuantity] = useState("")
-  const [inventory, setInventory] = useState({})
+  const [notes, setNotes] = useState("")
+  const [submitting, setSubmitting] = useState(false)
   const [logs, setLogs] = useState([])
 
   useEffect(() => {
-    // 재고 데이터 로드
-    const mockInventory = {
-      meat: 50,
-      vegetables: 30,
-      wine: 20,
-      champagne: 15,
-      coffee: 100,
-      baguette: 80,
-      eggs: 200,
-    }
-    setInventory(mockInventory)
+    loadLogs()
   }, [])
 
-  const handleStockIn = () => {
+  const loadLogs = async () => {
+    try {
+      const logsData = await ingredientAPI.getIngredientLogs(null, 10)
+      setLogs(logsData || [])
+    } catch (error) {
+      console.error("입출고 기록 조회 실패:", error)
+    }
+  }
+
+  const handleStockIn = async () => {
     if (!selectedIngredient || !quantity) {
       alert("재료와 수량을 입력해주세요")
       return
     }
 
-    const qty = Number.parseInt(quantity)
-    if (qty <= 0) {
+    const qty = parseFloat(quantity)
+    if (qty <= 0 || isNaN(qty)) {
       alert("올바른 수량을 입력해주세요")
       return
     }
 
-    // 재고 업데이트
-    setInventory((prev) => ({
-      ...prev,
-      [selectedIngredient]: (prev[selectedIngredient] || 0) + qty,
-    }))
-
-    // 로그 추가
-    const ingredient = INGREDIENTS.find((i) => i.id === selectedIngredient)
-    const newLog = {
-      id: Date.now(),
-      ingredient: ingredient.name,
-      icon: ingredient.icon,
-      action: "in",
-      quantity: qty,
-      unit: ingredient.unit,
-      timestamp: new Date(),
+    try {
+      setSubmitting(true)
+      await addStock(selectedIngredient, qty, notes || null)
+      
+      // 로그 새로고침
+      await loadLogs()
+      
+      // 폼 초기화
+      setQuantity("")
+      setNotes("")
+      
+      const ingredient = ingredients.find((i) => i.id === selectedIngredient)
+      alert(`${ingredient?.name || "재료"} ${qty}${ingredient?.unit || ""} 입고 완료!`)
+    } catch (error) {
+      alert(`입고 실패: ${error.message || "알 수 없는 오류가 발생했습니다."}`)
+    } finally {
+      setSubmitting(false)
     }
-    setLogs((prev) => [newLog, ...prev])
-
-    // 폼 초기화
-    setQuantity("")
-    alert(`${ingredient.name} ${qty}${ingredient.unit} 입고 완료!`)
   }
 
   return (
@@ -100,14 +102,20 @@ export default function StaffIngredientsPage() {
                       <SelectValue placeholder="재료를 선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
-                      {INGREDIENTS.map((ingredient) => (
-                        <SelectItem key={ingredient.id} value={ingredient.id}>
-                          <span className="flex items-center gap-2">
-                            <span>{ingredient.icon}</span>
-                            <span>{ingredient.name}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
+                      {loading ? (
+                        <SelectItem value="loading" disabled>로딩 중...</SelectItem>
+                      ) : ingredients.length === 0 ? (
+                        <SelectItem value="empty" disabled>재료가 없습니다</SelectItem>
+                      ) : (
+                        ingredients.map((ingredient) => (
+                          <SelectItem key={ingredient.id} value={ingredient.id}>
+                            <span className="flex items-center gap-2">
+                              <span>{getIngredientIcon(ingredient.name)}</span>
+                              <span>{ingredient.name}</span>
+                            </span>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -121,13 +129,39 @@ export default function StaffIngredientsPage() {
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
                     className="mt-2"
-                    min="1"
+                    min="0.01"
+                    step="0.01"
                   />
                 </div>
 
-                <Button className="w-full" onClick={handleStockIn} disabled={!selectedIngredient || !quantity}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  입고 처리
+                <div>
+                  <Label htmlFor="notes">비고 (선택사항)</Label>
+                  <Input
+                    id="notes"
+                    type="text"
+                    placeholder="비고 입력"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+
+                <Button 
+                  className="w-full" 
+                  onClick={handleStockIn} 
+                  disabled={!selectedIngredient || !quantity || submitting || loading}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      처리 중...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      입고 처리
+                    </>
+                  )}
                 </Button>
               </div>
             </Card>
@@ -139,18 +173,19 @@ export default function StaffIngredientsPage() {
                 {logs.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">입고 기록이 없습니다</p>
                 ) : (
-                  logs.slice(0, 5).map((log) => (
+                  logs.slice(0, 10).map((log) => (
                     <div key={log.id} className="flex items-center justify-between text-sm border-b pb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl">{log.icon}</span>
-                        <span>{log.ingredient}</span>
+                        <span className="text-xl">{getIngredientIcon(log.ingredientName || "")}</span>
+                        <span>{log.ingredientName || "알 수 없음"}</span>
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-green-600">
-                          +{log.quantity}
-                          {log.unit}
+                          +{Number(log.quantity).toLocaleString()}
                         </p>
-                        <p className="text-xs text-muted-foreground">{log.timestamp.toLocaleTimeString("ko-KR")}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {log.createdAt ? new Date(log.createdAt).toLocaleString("ko-KR") : ""}
+                        </p>
                       </div>
                     </div>
                   ))
@@ -167,31 +202,49 @@ export default function StaffIngredientsPage() {
                 현재 재고 현황
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {INGREDIENTS.map((ingredient) => {
-                  const stock = inventory[ingredient.id] || 0
-                  const isLow = stock < 10
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <p className="text-red-600 mb-2">재고 정보를 불러오는데 실패했습니다</p>
+                  <p className="text-sm text-muted-foreground">{error}</p>
+                  <Button onClick={loadIngredients} className="mt-4">다시 시도</Button>
+                </div>
+              ) : ingredients.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">재료가 없습니다</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {ingredients.map((ingredient) => {
+                    const stock = Number(ingredient.quantity || 0)
+                    const isLow = stock < 10
 
-                  return (
-                    <Card key={ingredient.id} className={`p-4 ${isLow ? "border-red-300 bg-red-50" : ""}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl">{ingredient.icon}</span>
-                          <div>
-                            <p className="font-bold">{ingredient.name}</p>
+                    return (
+                      <Card key={ingredient.id} className={`p-4 ${isLow ? "border-red-300 bg-red-50" : ""}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-3xl">{getIngredientIcon(ingredient.name)}</span>
+                            <div>
+                              <p className="font-bold">{ingredient.name}</p>
+                              <p className="text-xs text-muted-foreground">{ingredient.unit}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-2xl font-bold ${isLow ? "text-red-600" : "text-primary"}`}>
+                              {stock.toLocaleString()}
+                            </p>
                             <p className="text-xs text-muted-foreground">{ingredient.unit}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className={`text-2xl font-bold ${isLow ? "text-red-600" : "text-primary"}`}>{stock}</p>
-                          <p className="text-xs text-muted-foreground">{ingredient.unit}</p>
-                        </div>
-                      </div>
-                      {isLow && <p className="text-xs text-red-600 mt-2">⚠️ 재고 부족</p>}
-                    </Card>
-                  )
-                })}
-              </div>
+                        {isLow && <p className="text-xs text-red-600 mt-2">⚠️ 재고 부족</p>}
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
             </Card>
           </div>
         </div>

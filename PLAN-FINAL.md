@@ -795,29 +795,34 @@
     ├─ 단위 표시 (병, 개, 잔 등)
     └─ 실시간 업데이트
 
-[ ] Task 9.3: 재료 API (스토어에서 제약 조건 정보 조회는 불필요)
-    ├─ backend/src/main/java/com/softdinner/controller/ingredient/IngredientController.java
-    │  ├─ @GetMapping("/api/ingredients")
-    │  │  └─ 모든 재료 목록 (현재 재고)
-    │  ├─ @PostMapping("/api/ingredients/stock")
-    │  │  ├─ @PreAuthorize("hasRole('STAFF')")
-    │  │  └─ 입고 처리
-    │  └─ @GetMapping("/api/ingredients/logs")
-    │     └─ 입출고 기록 조회
-    ├─ backend/src/main/java/com/softdinner/service/IngredientService.java
-    │  ├─ getAllIngredients(): 모든 재료 조회
-    │  ├─ addStock(): 입고 처리
-    │  │  ├─ ingredients 테이블 업데이트 (quantity)
-    │  │  └─ ingredient_logs 기록 저장
-    │  └─ getIngredientLogs(): 입출고 기록 조회
-    ├─ frontend/lib/services/ingredient.service.js
-    └─ frontend/hooks/useIngredients.js
+[x] Task 9.3: 재료 API (스토어에서 제약 조건 정보 조회는 불필요)
+    ├─ backend/src/main/java/com/softdinner/controller/ingredient/IngredientController.java ✅
+    │  ├─ @GetMapping("/api/ingredients") ✅
+    │  │  └─ 모든 재료 목록 (현재 재고) ✅
+    │  ├─ @PostMapping("/api/ingredients/stock") ✅
+    │  │  ├─ @PreAuthorize("isAuthenticated()") + 역할 확인 ✅
+    │  │  └─ 입고 처리 ✅
+    │  └─ @GetMapping("/api/ingredients/logs") ✅
+    │     └─ 입출고 기록 조회 ✅
+    ├─ backend/src/main/java/com/softdinner/service/IngredientService.java ✅
+    │  ├─ getAllIngredients(): 모든 재료 조회 ✅
+    │  ├─ addStock(): 입고 처리 ✅
+    │  │  ├─ ingredients 테이블 업데이트 (quantity) ✅
+    │  │  └─ ingredient_logs 기록 저장 ✅
+    │  └─ getIngredientLogs(): 입출고 기록 조회 ✅
+    ├─ backend/src/main/java/com/softdinner/repository/IngredientRepository.java ✅
+    ├─ backend/src/main/java/com/softdinner/dto/IngredientDTO.java ✅
+    ├─ backend/src/main/java/com/softdinner/dto/AddStockRequestDTO.java ✅
+    ├─ backend/src/main/java/com/softdinner/dto/IngredientLogDTO.java ✅
+    ├─ frontend/lib/services/ingredient.service.js ✅
+    ├─ frontend/hooks/useIngredients.js ✅
+    └─ frontend/app/staff/ingredients/page.jsx API 연동 완료 ✅
 
-[ ] Task 9.4: 입출고 기록 저장
-    ├─ ingredient_logs 테이블 기록
-    ├─ 이전 수량, 입고 수량, 새 수량 저장
-    ├─ staff ID, 타임스탬프 기록
-    └─ 투명한 이력 관리
+[x] Task 9.4: 입출고 기록 저장
+    ├─ ingredient_logs 테이블 기록 ✅
+    ├─ 이전 수량, 입고 수량, 새 수량 저장 ✅
+    ├─ staff ID, 타임스탬프 기록 ✅
+    └─ 투명한 이력 관리 ✅
 
 [ ] Task 9.5: Git 커밋 (재료 관리)
     ├─ git checkout -b feature/task-bundle-9
