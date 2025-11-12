@@ -96,6 +96,25 @@ docker-compose build --no-cache backend
 
 ## 🔧 문제 해결
 
+### Docker 이미지 다운로드 실패 (네트워크 타임아웃)
+Docker Hub에서 이미지를 다운로드하는 중 타임아웃이 발생하는 경우:
+
+```bash
+# 1. Docker 재시작
+# Windows: Docker Desktop 재시작
+# Linux/Mac: sudo systemctl restart docker
+
+# 2. 네트워크 재시도
+docker-compose build --no-cache
+
+# 3. 수동으로 이미지 다운로드
+docker pull maven:3.9.9-eclipse-temurin-17
+docker pull node:18-alpine
+
+# 4. Docker Hub 대체 레지스트리 사용 (선택사항)
+# docker-compose.yml에 registry 설정 추가
+```
+
 ### 포트 충돌
 포트 3000 또는 8080이 이미 사용 중인 경우:
 ```bash

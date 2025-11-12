@@ -1,5 +1,6 @@
 # Backend Dockerfile (개발 모드)
-FROM maven:3.9-eclipse-temurin-17
+# Maven 3.9와 Java 17을 사용하는 이미지
+FROM maven:3.9.9-eclipse-temurin-17
 
 WORKDIR /app
 

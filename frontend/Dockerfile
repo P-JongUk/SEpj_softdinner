@@ -6,8 +6,8 @@ WORKDIR /app
 # package.json과 package-lock.json 복사
 COPY package*.json ./
 
-# 의존성 설치
-RUN npm install
+# 의존성 설치 (React 19 호환성을 위해 legacy-peer-deps 사용)
+RUN npm install --legacy-peer-deps
 
 # 나머지 파일 복사 (개발 모드에서는 볼륨 마운트로 덮어씌워짐)
 COPY . .
