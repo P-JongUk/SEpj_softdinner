@@ -47,17 +47,19 @@ export default function DashboardPage() {
   const loadOrders = async () => {
     try {
       const ordersData = await orderService.getUserOrders()
+      console.log("주문 내역 API 응답:", ordersData)
       // API 응답을 기존 형식에 맞게 변환
       const formattedOrders = ordersData.map((order) => ({
         id: order.id,
         dinner_name: order.dinnerName || "알 수 없음",
         dinner_style: order.styleName || "알 수 없음",
-        created_at: order.orderDate,
-        delivery_date: order.deliveryDate,
-        total_price: order.finalPrice,
+        created_at: order.orderDate ? new Date(order.orderDate).toISOString() : null,
+        delivery_date: order.deliveryDate ? new Date(order.deliveryDate).toISOString() : null,
+        total_price: typeof order.finalPrice === 'number' ? order.finalPrice : Number(order.finalPrice) || 0,
         status: order.deliveryStatus || order.cookingStatus || "pending",
         customizations: order.orderItems?.customizations || {},
       }))
+      console.log("변환된 주문 내역:", formattedOrders)
       setOrders(formattedOrders)
     } catch (error) {
       console.error("주문 내역 조회 실패:", error)
@@ -173,8 +175,8 @@ export default function DashboardPage() {
                           {order.dinner_name} ({order.dinner_style})
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          주문일: {new Date(order.created_at).toLocaleDateString("ko-KR")} | 배달일:{" "}
-                          {new Date(order.delivery_date).toLocaleDateString("ko-KR")}
+                          주문일: {order.created_at ? new Date(order.created_at).toLocaleDateString("ko-KR") : "알 수 없음"} | 배달일:{" "}
+                          {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString("ko-KR") : "알 수 없음"}
                         </p>
                       </div>
                       <div className="mt-3 md:mt-0 flex items-center gap-3">
@@ -184,24 +186,23 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="bg-secondary/30 rounded-lg p-4 mb-4">
-                      <h4 className="text-sm font-semibold text-foreground mb-2">주문 내용</h4>
-                      <div className="space-y-1">
-                        {order.customizations.map((item, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">
-                              {item.name} x {item.quantity}
-                            </span>
-                            <span className="text-foreground">
-                              {(item.unit_price * item.quantity).toLocaleString()}원
-                            </span>
-                          </div>
-                        ))}
+                    {order.customizations && Object.keys(order.customizations).length > 0 && (
+                      <div className="bg-secondary/30 rounded-lg p-4 mb-4">
+                        <h4 className="text-sm font-semibold text-foreground mb-2">커스터마이징</h4>
+                        <div className="space-y-1">
+                          {Object.entries(order.customizations).map(([itemId, qty]) => (
+                            <div key={itemId} className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                항목 ID: {itemId} x {qty}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="text-2xl font-bold text-primary">총 {order.total_price.toLocaleString()}원</div>
+                      <div className="text-2xl font-bold text-primary">총 {Number(order.total_price || 0).toLocaleString()}원</div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" asChild>
                           <Link href={`/orders/${order.id}`}>상세보기</Link>
