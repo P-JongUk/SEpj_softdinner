@@ -1,0 +1,15 @@
+target
+.mvn
+mvnw
+mvnw.cmd
+.env.local
+.env.production.local
+.env.development.local
+*.log
+.DS_Store
+.idea
+*.iml
+.classpath
+.project
+.settings
+

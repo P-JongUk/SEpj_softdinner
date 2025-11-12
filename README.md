@@ -66,11 +66,37 @@ cd backend
 npm run dev
 ```
 
-### 4. Docker로 실행 (선택사항)
+### 4. Docker로 실행 (팀 협업 권장)
 
+#### 환경 변수 설정
+`frontend/.env.local`과 `backend/.env.local` 파일을 생성하세요. (위의 환경 변수 설정 참고)
+
+#### Docker Compose 실행
 ```bash
-docker-compose up
+# 프로젝트 루트에서
+docker-compose up -d --build
 ```
+
+#### 서비스 접속
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8080
+
+#### 주요 명령어
+```bash
+# 서비스 시작
+docker-compose up -d
+
+# 서비스 중지
+docker-compose down
+
+# 로그 확인
+docker-compose logs -f
+
+# 재빌드
+docker-compose build --no-cache
+```
+
+자세한 내용은 [docs/DOCKER_SETUP.md](./docs/DOCKER_SETUP.md)를 참고하세요.
 
 ## 📝 Git 브랜치 전략
 
