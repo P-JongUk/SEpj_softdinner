@@ -33,6 +33,61 @@ public class AuthService {
 
     public AuthResponseDTO signup(SignupRequestDTO request) {
         try {
+            // 0. Check if user already exists in auth.users and delete if exists
+            // Supabase Admin API를 사용하여 이메일로 사용자 조회 및 삭제
+            try {
+                // Get all users and filter by email (Admin API doesn't support direct email filtering)
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> allUsers = supabaseWebClient.get()
+                        .uri(supabaseUrl + "/auth/v1/admin/users")
+                        .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                        .header("apikey", supabaseServiceRoleKey)
+                        .retrieve()
+                        .bodyToMono(List.class)
+                        .block();
+
+                if (allUsers != null) {
+                    // Find user by email
+                    Map<String, Object> existingUser = allUsers.stream()
+                            .filter(user -> request.getEmail().equalsIgnoreCase((String) user.get("email")))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (existingUser != null) {
+                        String existingUserId = (String) existingUser.get("id");
+                        log.warn("User already exists in auth.users with id: {}, deleting before recreating", existingUserId);
+                        
+                        // Delete existing user from auth.users
+                        supabaseWebClient.delete()
+                                .uri(supabaseUrl + "/auth/v1/admin/users/" + existingUserId)
+                                .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                                .header("apikey", supabaseServiceRoleKey)
+                                .retrieve()
+                                .bodyToMono(Void.class)
+                                .block();
+                        
+                        log.info("Deleted existing user from auth.users: {}", existingUserId);
+                        
+                        // Also delete from public.users if exists
+                        try {
+                            supabaseWebClient.delete()
+                                    .uri(supabaseUrl + "/rest/v1/users?id=eq." + existingUserId)
+                                    .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                                    .header("apikey", supabaseServiceRoleKey)
+                                    .retrieve()
+                                    .bodyToMono(Void.class)
+                                    .block();
+                            log.info("Deleted existing user from public.users: {}", existingUserId);
+                        } catch (Exception e) {
+                            log.warn("Failed to delete from public.users (may not exist): {}", e.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Error checking/deleting existing user: {}", e.getMessage());
+                // Continue with signup even if check fails
+            }
+
             // 1. Create user in Supabase Auth
             Map<String, Object> authRequest = new HashMap<>();
             authRequest.put("email", request.getEmail());
@@ -66,8 +121,8 @@ public class AuthService {
                                         String errorCode = (String) errorMap.get("error_code");
                                         String errorMsg = (String) errorMap.get("msg");
                                         
-                                        if ("email_exists".equals(errorCode)) {
-                                            return Mono.error(new RuntimeException("이미 등록된 이메일 주소입니다."));
+                                        if ("email_exists".equals(errorCode) || "user_already_registered".equals(errorCode)) {
+                                            return Mono.error(new RuntimeException("이미 등록된 이메일 주소입니다. Supabase Dashboard의 Authentication > Users에서 해당 사용자를 삭제한 후 다시 시도해주세요."));
                                         } else if (errorMsg != null) {
                                             return Mono.error(new RuntimeException(errorMsg));
                                         }
@@ -117,37 +172,8 @@ public class AuthService {
                 throw new RuntimeException("Failed to create user record in database");
             }
 
-            // 3. Login to get access token and refresh token
-            Map<String, Object> loginRequest = new HashMap<>();
-            loginRequest.put("email", request.getEmail());
-            loginRequest.put("password", request.getPassword());
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> loginResponse = supabaseWebClient.post()
-                    .uri(supabaseUrl + "/auth/v1/token?grant_type=password")
-                    .header("Authorization", "Bearer " + supabaseAnonKey) // Use anon key for login
-                    .header("apikey", supabaseAnonKey) // Use anon key for login
-                    .header("Content-Type", "application/json")
-                    .bodyValue(loginRequest)
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
-                        return response.bodyToMono(String.class)
-                                .flatMap(errorBody -> {
-                                    log.error("Supabase Auth login error after signup: {} - {}", response.statusCode(), errorBody);
-                                    return Mono.error(new RuntimeException("회원가입 후 로그인에 실패했습니다. 다시 시도해주세요."));
-                                });
-                    })
-                    .bodyToMono(Map.class)
-                    .block();
-
-            if (loginResponse == null) {
-                throw new RuntimeException("Failed to login after signup");
-            }
-
-            String accessToken = (String) loginResponse.get("access_token");
-            String refreshToken = (String) loginResponse.get("refresh_token");
-
-            // 4. Build response
+            // 3. Build response (자동 로그인 없이 회원가입만 완료)
+            // 사용자는 회원가입 후 직접 로그인 페이지에서 로그인해야 함
             UserResponseDTO userDTO = UserResponseDTO.builder()
                     .id(userId)
                     .email(request.getEmail())
@@ -161,11 +187,9 @@ public class AuthService {
                     .build();
 
             return AuthResponseDTO.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
                     .user(userDTO)
                     .role(request.getRole())
-                    .message("User registered successfully")
+                    .message("회원가입이 완료되었습니다. 로그인해주세요.")
                     .build();
 
         } catch (Exception e) {

@@ -46,18 +46,10 @@ export default function AuthPage() {
         role
       })
 
-      // 토큰 저장
-      if (response.accessToken) {
-        localStorage.setItem('accessToken', response.accessToken)
-        if (response.refreshToken) {
-          localStorage.setItem('refreshToken', response.refreshToken)
-        }
-      }
-
-      // 회원가입 성공
-      alert("회원가입이 완료되었습니다!")
+      // 회원가입 성공 - 토큰이 없으므로 로그인 페이지로 전환
+      alert(response.message || "회원가입이 완료되었습니다! 로그인해주세요.")
       setIsLogin(true)
-      setEmail("")
+      setEmail(email) // 이메일은 유지하여 로그인 편의성 제공
       setPassword("")
       setFullName("")
       setPhone("")
