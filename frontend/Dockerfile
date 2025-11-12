@@ -1,5 +1,6 @@
 # Frontend Dockerfile (개발 모드)
-FROM node:18-alpine
+# Next.js 16 requires Node.js >= 20.9.0
+FROM node:20-alpine
 
 WORKDIR /app
 
