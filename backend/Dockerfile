@@ -7,6 +7,14 @@ WORKDIR /app
 # Maven 캐시를 위한 볼륨 마운트 포인트
 VOLUME ["/root/.m2"]
 
+# pom.xml을 먼저 복사하여 의존성 다운로드 (캐시 최적화)
+# 개발 모드에서는 볼륨 마운트로 덮어씌워짐
+COPY pom.xml .
+RUN mvn dependency:go-offline -B || true
+
+# 소스 코드 복사 (개발 모드에서는 볼륨 마운트로 덮어씌워짐)
+COPY src ./src
+
 # 개발 모드: 소스 코드 변경 시 자동 재시작
 # 프로덕션 모드로 사용하려면 아래 주석 처리하고 multi-stage build 사용
 CMD ["mvn", "spring-boot:run"]
