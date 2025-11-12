@@ -144,26 +144,27 @@ public class AuthService {
             String userId = (String) authResponse.get("id");
             log.info("User created successfully in auth.users with id: {}, email: {}", userId, request.getEmail());
 
-            // 1.5. Verify password was set correctly by attempting to update it
-            // Sometimes Admin API doesn't set password correctly, so we update it explicitly
+            // 1.5. Verify password and email_confirmed status
+            // Sometimes Admin API doesn't set password or email_confirmed correctly, so we update it explicitly
             try {
-                Map<String, Object> passwordUpdateRequest = new HashMap<>();
-                passwordUpdateRequest.put("password", request.getPassword());
+                Map<String, Object> userUpdateRequest = new HashMap<>();
+                userUpdateRequest.put("password", request.getPassword());
+                userUpdateRequest.put("email_confirmed", true); // Ensure email is confirmed (use email_confirmed, not email_confirm)
                 
                 supabaseWebClient.put()
                         .uri(supabaseUrl + "/auth/v1/admin/users/" + userId)
                         .header("Authorization", "Bearer " + supabaseServiceRoleKey)
                         .header("apikey", supabaseServiceRoleKey)
                         .header("Content-Type", "application/json")
-                        .bodyValue(passwordUpdateRequest)
+                        .bodyValue(userUpdateRequest)
                         .retrieve()
                         .bodyToMono(Map.class)
                         .block();
                 
-                log.info("Password updated for user: {}", userId);
+                log.info("Password and email_confirmed updated for user: {}", userId);
             } catch (Exception e) {
-                log.warn("Failed to update password for user {}: {}", userId, e.getMessage());
-                // Continue anyway - password might be set correctly
+                log.warn("Failed to update password/email_confirmed for user {}: {}", userId, e.getMessage());
+                // Continue anyway - might be set correctly
             }
 
             // 2. Create user record in users table
