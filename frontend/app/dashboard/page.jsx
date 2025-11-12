@@ -15,7 +15,7 @@ import { menuAPI } from "@/lib/services/menu.service"
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, loading: authLoading } = useAuth()
+  const { user, role, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState([])
   const [reordering, setReordering] = useState(null)
@@ -28,11 +28,17 @@ export default function DashboardPage() {
       return
     }
 
+    // 직원은 직원 대시보드로 리다이렉트
+    if (user && role === "staff") {
+      router.push("/staff")
+      return
+    }
+
     if (user) {
       loadOrders()
       loadLoyaltyInfo()
     }
-  }, [user, authLoading, router])
+  }, [user, role, authLoading, router])
   
   const loadLoyaltyInfo = async () => {
     try {
@@ -160,7 +166,7 @@ export default function DashboardPage() {
           dinner_style: order.styleName || order.orderItems?.style_name || "알 수 없음",
           created_at: orderDateStr,
           delivery_date: deliveryDateStr,
-          total_price: finalPriceValue, // 할인 및 커스터마이징이 반영된 최종 가격
+          total_price: finalPriceValue || totalPriceValue, // 할인 및 커스터마이징이 반영된 최종 가격 (없으면 원래 가격)
           original_price: totalPriceValue, // 할인 전 총액
           discount_applied: discountValue, // 할인 금액
           status: order.deliveryStatus || order.cookingStatus || order.paymentStatus || "pending",
@@ -205,8 +211,7 @@ export default function DashboardPage() {
   const handleReorder = async (order) => {
     setReordering(order.id)
 
-    // TODO: Supabase에 실제로 주문 데이터 저장
-    // 여기서는 커스터마이징 정보를 세션이나 상태로 전달하고 체크아웃으로 이동
+    // 재주문: 커스터마이징 정보를 체크아웃 페이지로 전달
     console.log("[v0] 재주문:", order)
 
     // 디너 이름을 키로 변환 (예: "French Dinner" -> "french")
@@ -345,20 +350,29 @@ export default function DashboardPage() {
                     )}
 
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div>
-                        <div className="text-2xl font-bold text-primary">
-                          총 {Number(order.total_price || 0).toLocaleString()}원
-                        </div>
-                        {order.discount_applied > 0 && (
-                          <div className="text-sm text-muted-foreground mt-1">
-                            할인: -{Number(order.discount_applied || 0).toLocaleString()}원
-                            {order.original_price > 0 && (
-                              <span className="ml-2 line-through">
-                                {Number(order.original_price || 0).toLocaleString()}원
-                              </span>
+                      <div className="w-full">
+                        <div className="bg-secondary/30 rounded-lg p-4 mb-2">
+                          <div className="space-y-2 text-sm">
+                            {order.original_price > 0 && order.original_price !== order.total_price && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">주문 금액</span>
+                                <span className="line-through text-muted-foreground">
+                                  ₩{Number(order.original_price || 0).toLocaleString()}
+                                </span>
+                              </div>
                             )}
+                            {order.discount_applied > 0 && (
+                              <div className="flex justify-between text-green-600">
+                                <span>단골 할인</span>
+                                <span>-₩{Number(order.discount_applied || 0).toLocaleString()}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between pt-2 border-t font-bold text-lg">
+                              <span>최종 결제 금액</span>
+                              <span className="text-primary">₩{Number(order.total_price || 0).toLocaleString()}</span>
+                            </div>
                           </div>
-                        )}
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => handleReorder(order)} disabled={reordering === order.id}>

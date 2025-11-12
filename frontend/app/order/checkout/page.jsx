@@ -13,7 +13,8 @@ import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import Header from "@/components/common/header"
 import Footer from "@/components/common/footer"
-import { orderAPI } from "@/lib/api"
+import { orderAPI, apiRequest } from "@/lib/api"
+import { menuAPI } from "@/lib/services/menu.service"
 import { useAuth } from "@/context/AuthContext"
 import useOrderStore from "@/store/orderStore"
 
@@ -31,6 +32,21 @@ export default function CheckoutPage() {
   const [expiryDate, setExpiryDate] = useState("")
   const [cvc, setCvc] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  
+  // 주문 정보
+  const [dinner, setDinner] = useState(null)
+  const [style, setStyle] = useState(null)
+  const [menuItems, setMenuItems] = useState([])
+  const [loyaltyInfo, setLoyaltyInfo] = useState(null)
+  const [priceBreakdown, setPriceBreakdown] = useState({
+    basePrice: 0,
+    stylePrice: 0,
+    customizationPrice: 0,
+    subtotal: 0,
+    discountRate: 0,
+    discountAmount: 0,
+    finalPrice: 0,
+  })
 
   // Zustand store에서 커스터마이징 정보 가져오기
   const { customizations } = useOrderStore()
@@ -40,11 +56,115 @@ export default function CheckoutPage() {
       router.push("/auth")
       return
     }
-  }, [user, authLoading, router])
+    
+    if (user && dinnerId && styleId) {
+      loadOrderData()
+      loadLoyaltyInfo()
+    }
+  }, [user, authLoading, router, dinnerId, styleId])
+  
+  const loadOrderData = async () => {
+    try {
+      // 디너 정보
+      const dinnerData = await menuAPI.getDinnerById(dinnerId)
+      setDinner(dinnerData)
+      
+      // 스타일 정보
+      const stylesData = await menuAPI.getAllStyles()
+      const selectedStyleData = stylesData.find(s => s.id === styleId)
+      setStyle(selectedStyleData)
+      
+      // 메뉴 항목 (커스터마이징 가격 계산용)
+      const itemsData = await menuAPI.getMenuItemsByDinnerId(dinnerId)
+      setMenuItems(itemsData || [])
+    } catch (error) {
+      console.error("주문 정보 로드 실패:", error)
+    }
+  }
+  
+  const loadLoyaltyInfo = async () => {
+    try {
+      const info = await apiRequest('/api/users/loyalty', { method: 'GET' })
+      setLoyaltyInfo(info)
+    } catch (error) {
+      console.error("단골 정보 조회 실패:", error)
+    }
+  }
+  
+  // 가격 계산
+  useEffect(() => {
+    if (!dinner || !style) return
+    
+    const basePrice = Number(dinner.basePrice || 0)
+    const stylePrice = Number(style.priceModifier || 0)
+    
+    // 커스터마이징 가격 계산
+    let customizationPrice = 0
+    if (menuItems && menuItems.length > 0 && customizations) {
+      menuItems.forEach((item) => {
+        const qty = customizations[item.id] || 0
+        const additionalPrice = Number(item.additionalPrice || 0)
+        customizationPrice += qty * additionalPrice
+      })
+    }
+    
+    const subtotal = basePrice + stylePrice + customizationPrice
+    
+    // 할인 계산 (discountRate는 0.05 형식이므로 그대로 사용)
+    const discountRate = Number(loyaltyInfo?.discountRate || 0)
+    const discountAmount = subtotal * discountRate
+    const finalPrice = subtotal - discountAmount
+    
+    // 디버깅: 등급과 할인율 확인
+    if (loyaltyInfo) {
+      console.log("Checkout 할인 정보:", {
+        tier: loyaltyInfo.tier,
+        discountRate: discountRate,
+        discountAmount: discountAmount,
+        subtotal: subtotal,
+        finalPrice: finalPrice
+      })
+    }
+    
+    setPriceBreakdown({
+      basePrice,
+      stylePrice,
+      customizationPrice,
+      subtotal,
+      discountRate,
+      discountAmount,
+      finalPrice,
+    })
+  }, [dinner, style, menuItems, customizations, loyaltyInfo])
 
   const handleSubmitOrder = async () => {
     if (!deliveryAddress || !deliveryDate) {
       alert("배달 주소와 날짜를 입력해주세요")
+      return
+    }
+
+    // 결제 정보 필수 검증
+    if (!cardNumber || !expiryDate || !cvc) {
+      alert("결제 정보를 모두 입력해주세요")
+      return
+    }
+
+    // 카드 번호 형식 검증 (숫자만, 최소 13자리)
+    const cardNumberClean = cardNumber.replace(/\s/g, "")
+    if (cardNumberClean.length < 13 || !/^\d+$/.test(cardNumberClean)) {
+      alert("올바른 카드 번호를 입력해주세요")
+      return
+    }
+
+    // 만료일 형식 검증 (MM/YY)
+    if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+      alert("올바른 만료일 형식(MM/YY)을 입력해주세요")
+      return
+    }
+
+    // CVC 검증 (3-4자리 숫자)
+    if (!/^\d{3,4}$/.test(cvc)) {
+      alert("올바른 CVC를 입력해주세요")
       return
     }
 
@@ -153,39 +273,59 @@ export default function CheckoutPage() {
 
               {/* 결제 정보 */}
               <Card className="p-6">
-                <h3 className="text-xl font-bold mb-4">결제 정보</h3>
+                <h3 className="text-xl font-bold mb-4">결제 정보 *</h3>
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="cardNumber">카드 번호</Label>
+                    <Label htmlFor="cardNumber">카드 번호 *</Label>
                     <Input
                       id="cardNumber"
                       placeholder="1234 5678 9012 3456"
                       value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
+                      onChange={(e) => {
+                        // 숫자만 추출
+                        const value = e.target.value.replace(/\s/g, '').replace(/\D/g, '')
+                        // 4자리마다 공백 추가
+                        const formatted = value.match(/.{1,4}/g)?.join(' ') || value
+                        setCardNumber(formatted)
+                      }}
+                      maxLength={19} // 16자리 + 3개 공백
                       className="mt-2"
+                      required
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="expiry">만료일</Label>
+                      <Label htmlFor="expiry">만료일 (MM/YY) *</Label>
                       <Input
                         id="expiry"
                         placeholder="MM/YY"
                         value={expiryDate}
-                        onChange={(e) => setExpiryDate(e.target.value)}
+                        onChange={(e) => {
+                          // 숫자만 추출
+                          const value = e.target.value.replace(/\D/g, '')
+                          // MM/YY 형식으로 포맷팅
+                          let formatted = value
+                          if (value.length >= 2) {
+                            formatted = value.substring(0, 2) + '/' + value.substring(2, 4)
+                          }
+                          setExpiryDate(formatted)
+                        }}
+                        maxLength={5}
                         className="mt-2"
+                        required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="cvc">CVC</Label>
+                      <Label htmlFor="cvc">CVC *</Label>
                       <Input
                         id="cvc"
                         placeholder="123"
                         value={cvc}
                         onChange={(e) => setCvc(e.target.value)}
                         className="mt-2"
+                        required
                       />
                     </div>
                   </div>
@@ -201,26 +341,38 @@ export default function CheckoutPage() {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">기본 가격</span>
-                    <span>₩180,000</span>
+                    <span>₩{priceBreakdown.basePrice.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">스타일 추가</span>
-                    <span>₩20,000</span>
+                  {priceBreakdown.stylePrice > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">스타일 추가</span>
+                      <span>₩{priceBreakdown.stylePrice.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {priceBreakdown.customizationPrice > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">커스터마이징</span>
+                      <span>₩{priceBreakdown.customizationPrice.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm pt-2 border-t">
+                    <span className="text-muted-foreground">소계</span>
+                    <span className="font-medium">₩{priceBreakdown.subtotal.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">커스터마이징</span>
-                    <span>₩15,000</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>단골 할인 (Silver 5%)</span>
-                    <span>-₩10,750</span>
-                  </div>
+                  {priceBreakdown.discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>
+                        단골 할인 ({loyaltyInfo?.tier?.toUpperCase() || 'BRONZE'} {(priceBreakdown.discountRate * 100).toFixed(0)}%)
+                      </span>
+                      <span>-₩{priceBreakdown.discountAmount.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t pt-4 mb-6">
                   <div className="flex justify-between">
                     <span className="text-lg font-bold">총 결제 금액</span>
-                    <span className="text-2xl font-bold text-primary">₩204,250</span>
+                    <span className="text-2xl font-bold text-primary">₩{priceBreakdown.finalPrice.toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -228,7 +380,6 @@ export default function CheckoutPage() {
                   {isProcessing ? "처리 중..." : "결제하기"}
                 </Button>
 
-                <p className="text-xs text-muted-foreground text-center mt-4">결제 시 이용약관에 동의하게 됩니다</p>
               </Card>
             </div>
           </div>

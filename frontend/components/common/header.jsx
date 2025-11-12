@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Mic } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
 
@@ -21,6 +21,14 @@ export default function Header() {
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
+                {role === "customer" && (
+                  <Button variant="default" size="sm" asChild>
+                    <Link href="/order/voice">
+                      <Mic className="w-4 h-4 mr-2" />
+                      AI 음성인식 주문
+                    </Link>
+                  </Button>
+                )}
                 <span className="text-sm text-muted-foreground">{user.full_name || user.email}</span>
                 {role === "staff" && (
                   <Button variant="ghost" size="sm" asChild>
@@ -56,9 +64,17 @@ export default function Header() {
                   <>
                     <div className="text-sm text-muted-foreground mb-3">{user.full_name || user.email}</div>
                     {role === "customer" && (
-                      <Button variant="ghost" size="sm" className="w-full mb-2" asChild>
-                        <Link href="/dashboard">내 대시보드</Link>
-                      </Button>
+                      <>
+                        <Button variant="default" size="sm" className="w-full mb-2" asChild>
+                          <Link href="/order/voice">
+                            <Mic className="w-4 h-4 mr-2" />
+                            AI 음성인식 주문
+                          </Link>
+                        </Button>
+                        <Button variant="ghost" size="sm" className="w-full mb-2" asChild>
+                          <Link href="/dashboard">내 대시보드</Link>
+                        </Button>
+                      </>
                     )}
                     {role === "staff" && (
                       <Button variant="ghost" size="sm" className="w-full mb-2" asChild>

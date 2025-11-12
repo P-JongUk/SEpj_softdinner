@@ -195,5 +195,53 @@ public class OrderRepository {
             throw new RuntimeException("Failed to fetch user orders: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * 주문 정보 업데이트
+     */
+    @SuppressWarnings({"unchecked", "null"})
+    public Map<String, Object> updateOrder(String orderId, Map<String, Object> updateData) {
+        try {
+            Map<String, Object>[] result = supabaseWebClient.patch()
+                    .uri(supabaseUrl + "/rest/v1/orders?id=eq." + orderId)
+                    .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                    .header("apikey", supabaseServiceRoleKey)
+                    .header("Content-Type", "application/json")
+                    .header("Prefer", "return=representation")
+                    .bodyValue(updateData)
+                    .retrieve()
+                    .bodyToMono(Map[].class)
+                    .block();
+
+            return result != null && result.length > 0 ? result[0] : null;
+        } catch (Exception e) {
+            log.error("Error updating order: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to update order: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 첫 번째 staff 사용자 조회 (작업 할당용)
+     */
+    @SuppressWarnings("unchecked")
+    public String getFirstStaffUserId() {
+        try {
+            Map<String, Object>[] result = supabaseWebClient.get()
+                    .uri(supabaseUrl + "/rest/v1/users?role=eq.staff&limit=1&select=id")
+                    .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                    .header("apikey", supabaseServiceRoleKey)
+                    .retrieve()
+                    .bodyToMono(Map[].class)
+                    .block();
+
+            if (result != null && result.length > 0) {
+                return (String) result[0].get("id");
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Error fetching staff user: {}", e.getMessage(), e);
+            return null;
+        }
+    }
 }
 

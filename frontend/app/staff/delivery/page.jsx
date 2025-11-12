@@ -1,28 +1,50 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Truck, MapPin, CheckCircle } from "lucide-react"
+import { Truck, MapPin, CheckCircle, Loader2, ArrowLeft, ChefHat } from "lucide-react"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
+import { useDeliveryTasks } from "@/hooks/useDeliveryTasks"
+import { toast } from "sonner"
 
 export default function StaffDeliveryPage() {
-  const [tasks, setTasks] = useState([])
+  const router = useRouter()
+  const { tasks, loading, error, startDelivery, completeDelivery } = useDeliveryTasks()
+  const [processing, setProcessing] = useState(null)
 
-  useEffect(() => {
-    // TODO: API에서 배달 작업 목록 로드 (Task Bundle 11에서 구현 예정)
-    // 현재는 빈 배열로 시작
-    setTasks([])
-  }, [])
-
-  const handleStart = (taskId) => {
-    setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, status: "in_transit" } : task)))
+  const handleStart = async (taskId) => {
+    setProcessing(taskId)
+    try {
+      const result = await startDelivery(taskId)
+      if (result.success) {
+        toast.success("배달이 시작되었습니다")
+      } else {
+        toast.error(result.error || "배달 시작에 실패했습니다")
+      }
+    } catch (err) {
+      toast.error("배달 시작에 실패했습니다")
+    } finally {
+      setProcessing(null)
+    }
   }
 
-  const handleComplete = (taskId) => {
-    setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, status: "completed" } : task)))
-    alert("배달 완료!")
+  const handleComplete = async (taskId) => {
+    setProcessing(taskId)
+    try {
+      const result = await completeDelivery(taskId)
+      if (result.success) {
+        toast.success(result.message || "배달이 완료되었습니다")
+      } else {
+        toast.error(result.error || "배달 완료에 실패했습니다")
+      }
+    } catch (err) {
+      toast.error("배달 완료에 실패했습니다")
+    } finally {
+      setProcessing(null)
+    }
   }
 
   const getStatusBadge = (status) => {
@@ -43,12 +65,32 @@ export default function StaffDeliveryPage() {
     <ProtectedRoute requiredRole="staff">
       <div className="min-h-screen bg-background py-12 px-4">
         <div className="max-w-6xl mx-auto">
+          <Button variant="ghost" className="mb-6" onClick={() => router.push("/staff")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            뒤로가기
+          </Button>
           <h1 className="text-3xl font-bold mb-2">배달 작업 관리</h1>
-          <p className="text-muted-foreground mb-8">준비된 디너를 고객에게 배달하세요</p>
+
+          {/* 로딩 상태 */}
+          {loading && (
+            <Card className="p-12 text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">배달 작업 목록을 불러오는 중...</p>
+            </Card>
+          )}
+
+          {/* 에러 상태 */}
+          {error && !loading && (
+            <Card className="p-12 text-center border-destructive">
+              <p className="text-destructive mb-4">{error}</p>
+              <Button onClick={() => window.location.reload()}>다시 시도</Button>
+            </Card>
+          )}
 
           {/* 작업 목록 */}
-          <div className="space-y-4">
-            {tasks.map((task) => (
+          {!loading && !error && (
+            <div className="space-y-4">
+              {tasks.map((task) => (
               <Card key={task.id} className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -58,31 +100,55 @@ export default function StaffDeliveryPage() {
                     </div>
 
                     <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">주문:</span>
-                        <span className="font-medium">{task.dinnerName}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>{task.deliveryAddress}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>배달 날짜: {task.deliveryDate}</span>
-                      </div>
+                      {task.dinnerName && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">주문:</span>
+                          <span className="font-medium">{task.dinnerName}</span>
+                        </div>
+                      )}
+                      {task.deliveryAddress && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="w-4 h-4 text-muted-foreground" />
+                          <span>{task.deliveryAddress}</span>
+                        </div>
+                      )}
+                      {task.deliveryDate && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>배달 날짜: {new Date(task.deliveryDate).toLocaleDateString('ko-KR')}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* 액션 버튼 */}
                   <div className="flex flex-col gap-2">
                     {task.status === "pending" && (
-                      <Button onClick={() => handleStart(task.id)}>
-                        <Truck className="w-4 h-4 mr-2" />
-                        배달 시작
+                      <Button 
+                        onClick={() => handleStart(task.id)} 
+                        disabled={processing === task.id || !task.isCookingComplete}
+                        className={!task.isCookingComplete ? "opacity-50" : ""}
+                      >
+                        {processing === task.id ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : task.isCookingComplete ? (
+                          <Truck className="w-4 h-4 mr-2" />
+                        ) : (
+                          <ChefHat className="w-4 h-4 mr-2" />
+                        )}
+                        {task.isCookingComplete ? "배달 시작" : "요리중"}
                       </Button>
                     )}
                     {task.status === "in_transit" && (
-                      <Button onClick={() => handleComplete(task.id)} variant="default">
-                        <CheckCircle className="w-4 h-4 mr-2" />
+                      <Button 
+                        onClick={() => handleComplete(task.id)} 
+                        variant="default"
+                        disabled={processing === task.id}
+                      >
+                        {processing === task.id ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                        )}
                         배달 완료
                       </Button>
                     )}
@@ -96,12 +162,13 @@ export default function StaffDeliveryPage() {
               </Card>
             ))}
 
-            {tasks.length === 0 && (
-              <Card className="p-12 text-center">
-                <p className="text-muted-foreground">현재 배달 작업이 없습니다</p>
-              </Card>
-            )}
-          </div>
+              {tasks.length === 0 && (
+                <Card className="p-12 text-center">
+                  <p className="text-muted-foreground">현재 배달 작업이 없습니다</p>
+                </Card>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </ProtectedRoute>

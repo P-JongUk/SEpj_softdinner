@@ -27,6 +27,8 @@ logging:
   level:
     root: INFO
     com.softdinner: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: WARN
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 

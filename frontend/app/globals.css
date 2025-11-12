@@ -75,8 +75,7 @@
 }
 
 @theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --font-mono: "Noto Sans KR", "Courier New", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -121,5 +120,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans), "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .font-serif {
+    font-family: var(--font-display), "Playfair Display", Georgia, serif;
   }
 }

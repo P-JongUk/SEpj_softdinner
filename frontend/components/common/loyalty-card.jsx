@@ -13,7 +13,9 @@ export default function LoyaltyCard({ tier, totalOrders, totalSpent, discountRat
     platinum: "플래티넘",
   }
 
-  const progress = nextTier && totalOrders ? ((Number(totalOrders) / nextTier.minOrders) * 100).toFixed(0) : 100
+  const progress = nextTier && nextTier.minOrders ? 
+    Math.min(100, Math.max(0, ((Number(totalOrders || 0) / Number(nextTier.minOrders)) * 100))).toFixed(0) : 
+    (nextTier ? 100 : 0)
 
   return (
     <div className="bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20 rounded-xl p-6 shadow-lg">
@@ -41,14 +43,16 @@ export default function LoyaltyCard({ tier, totalOrders, totalSpent, discountRat
 
         <div className="bg-white/50 rounded-lg p-4">
           <div className="text-sm text-muted-foreground mb-2">현재 할인율</div>
-          <div className="text-3xl font-bold text-green-600">{Number(discountRate || 0)}%</div>
+          <div className="text-3xl font-bold text-green-600">{(Number(discountRate || 0) * 100).toFixed(0)}%</div>
         </div>
 
         {nextTier && (
           <div className="bg-white/50 rounded-lg p-4">
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-muted-foreground">다음 등급까지</span>
-              <span className="text-foreground font-bold text-primary">{nextTier.minOrders - Number(totalOrders || 0)}회 남음</span>
+              <span className="text-foreground font-bold text-primary">
+                주문 {Math.max(0, Number(nextTier.minOrders || 0) - Number(totalOrders || 0))}회 남음
+              </span>
             </div>
             <div className="w-full bg-muted rounded-full h-3">
               <div
@@ -56,7 +60,9 @@ export default function LoyaltyCard({ tier, totalOrders, totalSpent, discountRat
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="text-xs text-muted-foreground mt-1 text-right">{progress}% 달성</div>
+            <div className="text-xs text-muted-foreground mt-1 text-right">
+              {isNaN(Number(progress)) ? '0' : progress}% 달성
+            </div>
           </div>
         )}
       </div>

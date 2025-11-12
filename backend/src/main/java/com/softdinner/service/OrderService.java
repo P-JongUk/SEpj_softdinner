@@ -1,6 +1,9 @@
 package com.softdinner.service;
 
 import com.softdinner.dto.*;
+import com.softdinner.repository.CookingTaskRepository;
+import com.softdinner.repository.DeliveryTaskRepository;
+import com.softdinner.repository.MenuRepository;
 import com.softdinner.repository.OrderRepository;
 import com.softdinner.service.LoyaltyService.LoyaltyUpdateResult;
 import lombok.extern.slf4j.Slf4j;
@@ -18,10 +21,22 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final LoyaltyService loyaltyService;
+    private final CookingTaskRepository cookingTaskRepository;
+    private final DeliveryTaskRepository deliveryTaskRepository;
+    private final MenuRepository menuRepository;
 
-    public OrderService(OrderRepository orderRepository, LoyaltyService loyaltyService) {
+    public OrderService(
+            OrderRepository orderRepository, 
+            LoyaltyService loyaltyService,
+            CookingTaskRepository cookingTaskRepository,
+            DeliveryTaskRepository deliveryTaskRepository,
+            MenuRepository menuRepository
+    ) {
         this.orderRepository = orderRepository;
         this.loyaltyService = loyaltyService;
+        this.cookingTaskRepository = cookingTaskRepository;
+        this.deliveryTaskRepository = deliveryTaskRepository;
+        this.menuRepository = menuRepository;
     }
 
     /**
@@ -54,11 +69,36 @@ public class OrderService {
             BigDecimal basePrice = new BigDecimal(dinner.get("base_price").toString());
             BigDecimal stylePriceModifier = new BigDecimal(style.get("price_modifier").toString());
             
-            // 커스터마이징 추가 가격 계산 (간단한 버전 - 실제로는 menu_items에서 계산해야 함)
+            // 커스터마이징 추가 가격 계산 (menu_items에서 계산)
             BigDecimal customizationPrice = BigDecimal.ZERO;
-            if (request.getCustomizations() != null) {
-                // TODO: 실제 menu_items에서 가격 계산
-                customizationPrice = BigDecimal.ZERO;
+            if (request.getCustomizations() != null && !request.getCustomizations().isEmpty()) {
+                String dinnerIdForMenu = (String) dinner.get("id");
+                List<Map<String, Object>> menuItems = menuRepository.findMenuItemsByDinnerId(dinnerIdForMenu);
+                
+                // menu_items를 Map으로 변환 (빠른 조회를 위해)
+                Map<String, Map<String, Object>> menuItemMap = new HashMap<>();
+                for (Map<String, Object> item : menuItems) {
+                    String itemId = (String) item.get("id");
+                    if (itemId != null) {
+                        menuItemMap.put(itemId, item);
+                    }
+                }
+                
+                // 커스터마이징 가격 계산
+                for (Map.Entry<String, Integer> entry : request.getCustomizations().entrySet()) {
+                    String menuItemId = entry.getKey();
+                    Integer quantity = entry.getValue();
+                    
+                    Map<String, Object> menuItem = menuItemMap.get(menuItemId);
+                    if (menuItem != null) {
+                        Object additionalPriceObj = menuItem.get("additional_price");
+                        if (additionalPriceObj != null) {
+                            BigDecimal additionalPrice = new BigDecimal(additionalPriceObj.toString());
+                            BigDecimal itemTotal = additionalPrice.multiply(new BigDecimal(quantity));
+                            customizationPrice = customizationPrice.add(itemTotal);
+                        }
+                    }
+                }
             }
 
             BigDecimal subtotal = basePrice.add(stylePriceModifier).add(customizationPrice);
@@ -98,6 +138,47 @@ public class OrderService {
             Map<String, Object> savedOrder = orderRepository.createOrder(orderData);
             if (savedOrder == null) {
                 throw new RuntimeException("Failed to create order");
+            }
+
+            String orderId = (String) savedOrder.get("id");
+
+            // 6-1. 요리 작업 생성 (첫 번째 staff 사용자에게 할당)
+            try {
+                String staffId = orderRepository.getFirstStaffUserId();
+                if (staffId != null) {
+                    Map<String, Object> cookingTaskData = new HashMap<>();
+                    cookingTaskData.put("order_id", orderId);
+                    cookingTaskData.put("staff_id", staffId);
+                    cookingTaskData.put("status", "waiting");
+                    
+                    cookingTaskRepository.createCookingTask(cookingTaskData);
+                    log.info("Cooking task created for order {} assigned to staff {}", orderId, staffId);
+                } else {
+                    log.warn("No staff user found, cooking task not created for order {}", orderId);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to create cooking task for order {}: {}", orderId, e.getMessage());
+                // 요리 작업 생성 실패해도 주문은 계속 진행
+            }
+
+            // 6-2. 배달 작업 생성 (요리 완료 후 배달 가능, 일단 주문 생성 시 함께 생성)
+            try {
+                String staffId = orderRepository.getFirstStaffUserId();
+                if (staffId != null) {
+                    Map<String, Object> deliveryTaskData = new HashMap<>();
+                    deliveryTaskData.put("order_id", orderId);
+                    deliveryTaskData.put("staff_id", staffId);
+                    deliveryTaskData.put("customer_address", request.getDeliveryAddress());
+                    deliveryTaskData.put("status", "pending");
+                    
+                    deliveryTaskRepository.createDeliveryTask(deliveryTaskData);
+                    log.info("Delivery task created for order {} assigned to staff {}", orderId, staffId);
+                } else {
+                    log.warn("No staff user found, delivery task not created for order {}", orderId);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to create delivery task for order {}: {}", orderId, e.getMessage());
+                // 배달 작업 생성 실패해도 주문은 계속 진행
             }
 
             // 7. 사용자 통계 업데이트

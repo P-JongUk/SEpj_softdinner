@@ -23,7 +23,7 @@ const getDinnerIcon = (name) => {
 
 export default function DinnersPage() {
   const router = useRouter()
-  const { user, loading: authLoading } = useAuth()
+  const { user, role, loading: authLoading } = useAuth()
   const [dinners, setDinners] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -34,10 +34,16 @@ export default function DinnersPage() {
       return
     }
 
+    // 직원은 직원 대시보드로 리다이렉트
+    if (user && role === "staff") {
+      router.push("/staff")
+      return
+    }
+
     if (user) {
       loadDinners()
     }
-  }, [user, authLoading, router])
+  }, [user, role, authLoading, router])
 
   const loadDinners = async () => {
     try {

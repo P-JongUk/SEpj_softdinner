@@ -29,11 +29,6 @@ export default function HomePage() {
               <br />
               당신의 특별한 순간을 Mr. 대박 디너서비스와 함께하세요
             </p>
-            <div className="flex justify-center">
-              <Button size="lg" asChild>
-                <Link href="/auth">로그인하고 시작하기</Link>
-              </Button>
-            </div>
           </div>
         </section>
 

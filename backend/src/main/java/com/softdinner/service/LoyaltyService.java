@@ -9,6 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.Arrays;
 
 @Slf4j
 @Service
@@ -36,12 +37,12 @@ public class LoyaltyService {
             "platinum", new BigDecimal("0.20")  // 20%
     );
 
-    // 단골 등급별 최소 조건
+    // 단골 등급별 최소 조건 (주문 횟수만)
     private static final Map<String, TierCriteria> TIER_CRITERIA = Map.of(
             "bronze", new TierCriteria(0, BigDecimal.ZERO),
-            "silver", new TierCriteria(5, new BigDecimal("100000")),      // 5주문 또는 100,000원
-            "gold", new TierCriteria(15, new BigDecimal("300000")),      // 15주문 또는 300,000원
-            "platinum", new TierCriteria(30, new BigDecimal("700000"))     // 30주문 또는 700,000원
+            "silver", new TierCriteria(5, BigDecimal.ZERO),      // 5주문
+            "gold", new TierCriteria(15, BigDecimal.ZERO),      // 15주문
+            "platinum", new TierCriteria(30, BigDecimal.ZERO)     // 30주문
     );
 
     @Data
@@ -60,18 +61,24 @@ public class LoyaltyService {
 
     /**
      * 주문 횟수와 지출액으로 적합한 등급 결정
+     * 주문 횟수 또는 지출액 중 하나라도 기준을 만족하면 해당 등급
+     * 높은 등급부터 확인하여 가장 높은 등급을 반환
      */
     public String determineLoyaltyTier(int totalOrders, BigDecimal totalSpent) {
         String highestTier = "bronze";
         
-        for (Map.Entry<String, TierCriteria> entry : TIER_CRITERIA.entrySet()) {
-            String tier = entry.getKey();
-            TierCriteria criteria = entry.getValue();
+        // 등급을 높은 것부터 낮은 순서로 확인 (platinum -> gold -> silver -> bronze)
+        // 가장 높은 등급부터 확인하여 조건을 만족하는 첫 번째 등급을 반환
+        List<String> tierOrder = Arrays.asList("platinum", "gold", "silver", "bronze");
+        
+        for (String tier : tierOrder) {
+            TierCriteria criteria = TIER_CRITERIA.get(tier);
+            if (criteria == null) continue;
             
-            // 주문 횟수 또는 지출액 중 하나라도 기준을 만족하면 해당 등급
-            if (totalOrders >= criteria.getMinOrders() && 
-                totalSpent.compareTo(criteria.getMinSpent()) >= 0) {
+            // 주문 횟수 기준으로 등급 결정
+            if (totalOrders >= criteria.getMinOrders()) {
                 highestTier = tier;
+                break; // 가장 높은 등급을 찾았으므로 종료
             }
         }
         
@@ -138,8 +145,32 @@ public class LoyaltyService {
                     .bodyToMono(Map[].class)
                     .block();
 
-            // 5. loyalty_history에 기록 (선택사항 - 테이블이 있다면)
-            // TODO: loyalty_history 테이블에 기록
+            // 5. loyalty_history에 기록
+            try {
+                Map<String, Object> historyData = new HashMap<>();
+                historyData.put("user_id", userId);
+                historyData.put("action_type", "tier_upgrade");
+                historyData.put("previous_tier", currentTier);
+                historyData.put("new_tier", newTier);
+                historyData.put("notes", String.format("%s 등급에서 %s 등급으로 업그레이드", 
+                        getTierName(currentTier), getTierName(newTier)));
+
+                supabaseWebClient.post()
+                        .uri(supabaseUrl + "/rest/v1/loyalty_history")
+                        .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                        .header("apikey", supabaseServiceRoleKey)
+                        .header("Content-Type", "application/json")
+                        .header("Prefer", "return=representation")
+                        .bodyValue(historyData)
+                        .retrieve()
+                        .bodyToMono(Map[].class)
+                        .block();
+
+                log.info("Loyalty history recorded for user {}: {} -> {}", userId, currentTier, newTier);
+            } catch (Exception e) {
+                log.warn("Failed to record loyalty history for user {}: {}", userId, e.getMessage());
+                // history 기록 실패해도 등급 업그레이드는 계속 진행
+            }
 
             String message = String.format("축하합니다! %s 등급에서 %s 등급으로 업그레이드되었습니다!", 
                     getTierName(currentTier), getTierName(newTier));
@@ -184,9 +215,11 @@ public class LoyaltyService {
             }
 
             Map<String, Object> user = userArray[0];
-            String tier = (String) user.getOrDefault("loyalty_tier", "bronze");
             Integer totalOrders = ((Number) user.getOrDefault("total_orders", 0)).intValue();
             BigDecimal totalSpent = new BigDecimal(user.getOrDefault("total_spent", 0).toString());
+            
+            // 실제 등급을 주문 횟수와 지출액으로 다시 계산 (DB에 저장된 값이 잘못될 수 있음)
+            String tier = determineLoyaltyTier(totalOrders, totalSpent);
             BigDecimal discountRate = getDiscountRateByTier(tier);
 
             // 2. 다음 등급 정보 계산
@@ -227,21 +260,17 @@ public class LoyaltyService {
 
         TierCriteria nextCriteria = TIER_CRITERIA.get(nextTier);
         int ordersNeeded = Math.max(0, nextCriteria.getMinOrders() - totalOrders);
-        BigDecimal amountNeeded = nextCriteria.getMinSpent().subtract(totalSpent).max(BigDecimal.ZERO);
 
-        // 진행률 계산 (주문 횟수와 지출액 중 더 빠른 것 기준)
-        double ordersProgress = totalOrders > 0 
+        // 진행률 계산 (주문 횟수 기준)
+        double progressPercentage = nextCriteria.getMinOrders() > 0
                 ? Math.min(100.0, (double) totalOrders / nextCriteria.getMinOrders() * 100.0)
-                : 0.0;
-        double spentProgress = totalSpent.compareTo(BigDecimal.ZERO) > 0
-                ? Math.min(100.0, totalSpent.divide(nextCriteria.getMinSpent(), 2, java.math.RoundingMode.HALF_UP).doubleValue() * 100.0)
-                : 0.0;
-        double progressPercentage = Math.max(ordersProgress, spentProgress);
+                : 100.0;
 
         return LoyaltyInfoDTO.NextTierInfoDTO.builder()
                 .tier(nextTier)
+                .minOrders(nextCriteria.getMinOrders())
                 .ordersNeeded(ordersNeeded)
-                .amountNeeded(amountNeeded)
+                .amountNeeded(BigDecimal.ZERO)
                 .progressPercentage(progressPercentage)
                 .build();
     }

@@ -63,9 +63,7 @@ public class IngredientRepository {
                     .block();
 
             if (result != null && result.length > 0) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> ingredient = result[0];
-                return ingredient;
+                return result[0];
             }
             return null;
         } catch (Exception e) {
@@ -77,7 +75,7 @@ public class IngredientRepository {
     /**
      * 재료 수량 업데이트
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "null"})
     public Map<String, Object> updateIngredientQuantity(String ingredientId, BigDecimal newQuantity) {
         try {
             Map<String, Object> updateData = Map.of("quantity", newQuantity.toString());
@@ -94,9 +92,7 @@ public class IngredientRepository {
                     .block();
 
             if (result != null && result.length > 0) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> ingredient = result[0];
-                return ingredient;
+                return result[0];
             }
             return null;
         } catch (Exception e) {
@@ -108,7 +104,7 @@ public class IngredientRepository {
     /**
      * 입출고 기록 저장
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "null"})
     public Map<String, Object> createIngredientLog(Map<String, Object> logData) {
         try {
             Map<String, Object>[] result = supabaseWebClient.post()
@@ -123,9 +119,7 @@ public class IngredientRepository {
                     .block();
 
             if (result != null && result.length > 0) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> ingredient = result[0];
-                return ingredient;
+                return result[0];
             }
             return null;
         } catch (Exception e) {

@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Package, Loader2 } from "lucide-react"
+import { Plus, Package, Loader2, ArrowLeft } from "lucide-react"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
 import { useIngredients } from "@/hooks/useIngredients"
 import { ingredientAPI } from "@/lib/services/ingredient.service"
@@ -26,6 +27,7 @@ const getIngredientIcon = (name) => {
 }
 
 export default function StaffIngredientsPage() {
+  const router = useRouter()
   const { ingredients, loading, error, loadIngredients, addStock } = useIngredients()
   const [selectedIngredient, setSelectedIngredient] = useState("")
   const [quantity, setQuantity] = useState("")
@@ -82,6 +84,10 @@ export default function StaffIngredientsPage() {
     <ProtectedRoute requiredRole="staff">
       <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-6xl mx-auto">
+        <Button variant="ghost" className="mb-6" onClick={() => router.push("/staff")}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          뒤로가기
+        </Button>
         <h1 className="text-3xl font-bold mb-2">재료 입고 관리</h1>
         <p className="text-muted-foreground mb-8">재료를 입고하고 재고를 관리하세요</p>
 

@@ -23,6 +23,7 @@ public class LoyaltyInfoDTO {
     @AllArgsConstructor
     public static class NextTierInfoDTO {
         private String tier;
+        private Integer minOrders;
         private Integer ordersNeeded;
         private BigDecimal amountNeeded;
         private Double progressPercentage;

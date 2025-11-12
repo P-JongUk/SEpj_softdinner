@@ -39,9 +39,27 @@ public class MenuService {
     public List<MenuItemDTO> findMenuItemsByDinnerId(String dinnerId) {
         List<Map<String, Object>> items = menuRepository.findMenuItemsByDinnerId(dinnerId);
         
-        return items.stream()
-                .map(this::mapToMenuItemDTO)
-                .collect(Collectors.toList());
+        if (items == null || items.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 중복 제거: id를 기준으로 중복 제거 (LinkedHashMap으로 순서 유지)
+        Map<String, MenuItemDTO> uniqueItems = new LinkedHashMap<>();
+        Set<String> seenIds = new HashSet<>();
+        
+        for (Map<String, Object> item : items) {
+            if (item == null) continue;
+            
+            String itemId = (String) item.get("id");
+            if (itemId != null && !itemId.isEmpty() && !seenIds.contains(itemId)) {
+                seenIds.add(itemId);
+                uniqueItems.put(itemId, mapToMenuItemDTO(item));
+            }
+        }
+        
+        log.debug("Menu items for dinner {}: total={}, unique={}", dinnerId, items.size(), uniqueItems.size());
+        
+        return new ArrayList<>(uniqueItems.values());
     }
 
     public List<StyleDTO> findAllStyles() {

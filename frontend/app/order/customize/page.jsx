@@ -72,21 +72,53 @@ export default function CustomizePage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isMounted = true
+    
     const loadMenuItems = async () => {
       if (!dinnerId) {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+          setItems([])
+        }
         return
       }
 
       try {
-        setLoading(true)
+        if (isMounted) {
+          setLoading(true)
+          setItems([]) // 기존 items 초기화
+        }
+        
         // API에서 메뉴 항목 조회
         const menuItems = await menuAPI.getMenuItemsByDinnerId(dinnerId)
         
+        if (!isMounted) return
+        
         // API 응답이 있고 비어있지 않으면 사용
         if (menuItems && menuItems.length > 0) {
+          console.log("API에서 받은 메뉴 항목 수:", menuItems.length)
+          
+          // Map을 사용하여 id 기준으로 확실하게 중복 제거
+          const itemMap = new Map()
+          const seenIds = new Set()
+          
+          menuItems.forEach((item) => {
+            if (item && item.id) {
+              // id가 이미 본 적이 있으면 스킵
+              if (seenIds.has(item.id)) {
+                console.warn("중복된 메뉴 항목 발견:", item.id, item.name)
+                return
+              }
+              seenIds.add(item.id)
+              itemMap.set(item.id, item)
+            }
+          })
+          
+          const uniqueMenuItems = Array.from(itemMap.values())
+          console.log("중복 제거 후 메뉴 항목 수:", uniqueMenuItems.length)
+          
           // DB 응답을 프론트엔드 형식으로 변환
-          const formattedItems = menuItems.map((item) => ({
+          const formattedItems = uniqueMenuItems.map((item) => ({
             id: item.id,
             name: item.name,
             unit: item.unit,
@@ -99,10 +131,22 @@ export default function CustomizePage() {
             icon: getItemIcon(item.name),
           }))
 
-          setItems(formattedItems)
+          // 최종 중복 제거: Map을 사용하여 한 번 더 확인
+          const finalItemMap = new Map()
+          formattedItems.forEach((item) => {
+            if (item && item.id && !finalItemMap.has(item.id)) {
+              finalItemMap.set(item.id, item)
+            }
+          })
+          
+          const finalItems = Array.from(finalItemMap.values())
+          
+          if (isMounted) {
+            setItems(finalItems)
+          }
           
           // 재주문인 경우 이전 주문의 커스터마이징 복원
-          if (reorderId && formattedItems.length > 0) {
+          if (reorderId && finalItems.length > 0) {
             try {
               const orders = await orderService.getUserOrders()
               const previousOrder = orders.find(o => o.id === reorderId)
@@ -112,12 +156,14 @@ export default function CustomizePage() {
                 const previousCustomizations = previousOrder.orderItems.customizations
                 
                 // 먼저 기본값으로 초기화
-                initializeCustomizations(formattedItems)
+                if (isMounted) {
+                  initializeCustomizations(finalItems)
+                }
                 
                 // 이전 커스터마이징 복원
                 Object.entries(previousCustomizations).forEach(([itemId, qty]) => {
-                  const item = formattedItems.find(i => i.id === itemId)
-                  if (item && qty > 0) {
+                  const item = finalItems.find(i => i.id === itemId)
+                  if (item && qty > 0 && isMounted) {
                     // 수량이 최소/최대 범위 내인지 확인
                     const validQty = Math.max(item.minQuantity, Math.min(item.maxQuantity, qty))
                     updateCustomization(itemId, { quantity: validQty })
@@ -125,36 +171,62 @@ export default function CustomizePage() {
                 })
               } else {
                 // 재주문 데이터가 없으면 기본값으로 초기화
-                initializeCustomizations(formattedItems)
+                if (isMounted) {
+                  initializeCustomizations(finalItems)
+                }
               }
             } catch (error) {
               console.error("재주문 데이터 로드 실패:", error)
               // 실패 시 기본값으로 초기화
-              initializeCustomizations(formattedItems)
+              if (isMounted) {
+                initializeCustomizations(finalItems)
+              }
             }
           } else {
             // 일반 주문인 경우 기본값으로 초기화
-            if (formattedItems.length > 0) {
-              initializeCustomizations(formattedItems)
+            if (finalItems.length > 0 && isMounted) {
+              initializeCustomizations(finalItems)
             }
           }
         } else {
           // API 응답이 비어있으면 에러 표시
-          console.error("API에서 메뉴 항목이 비어있습니다.")
-          setItems([])
+          if (isMounted) {
+            console.error("API에서 메뉴 항목이 비어있습니다.")
+            setItems([])
+          }
         }
       } catch (error) {
         console.error("메뉴 항목 조회 실패:", error)
         // 에러 발생 시 빈 배열로 설정
-        setItems([])
+        if (isMounted) {
+          setItems([])
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
-    loadMenuItems()
+    // dinnerId가 변경될 때만 실행
+    if (dinnerId) {
+      loadMenuItems()
+    }
+    
+    return () => {
+      isMounted = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dinnerId, reorderId])
+  
+  // 중복 방지: Map을 사용하여 id 기준으로 확실하게 중복 제거
+  const uniqueItemsMap = new Map()
+  items.forEach((item) => {
+    if (item && item.id && !uniqueItemsMap.has(item.id)) {
+      uniqueItemsMap.set(item.id, item)
+    }
+  })
+  const uniqueItems = Array.from(uniqueItemsMap.values())
 
   useEffect(() => {
     // 로컬 가격 계산 (Zustand store와 동기화)
@@ -237,12 +309,12 @@ export default function CustomizePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* 왼쪽: 커스터마이징 */}
           <div className="lg:col-span-2 space-y-4">
-            {items.length === 0 ? (
+            {uniqueItems.length === 0 && !loading ? (
               <Card className="p-6">
-                <p className="text-muted-foreground text-center">메뉴 항목을 불러오는 중...</p>
+                <p className="text-muted-foreground text-center">메뉴 항목이 없습니다.</p>
               </Card>
             ) : (
-              items.map((item) => {
+              uniqueItems.map((item) => {
               const currentQty = customizations[item.id] || 0
 
               return (
@@ -360,7 +432,7 @@ export default function CustomizePage() {
               <h3 className="text-xl font-bold mb-4">주문 요약</h3>
 
               <div className="space-y-3 mb-6 max-h-[400px] overflow-y-auto">
-                {items.map((item) => {
+                {uniqueItems.map((item) => {
                   const currentQty = customizations[item.id] || 0
                   if (currentQty === 0) return null
 
