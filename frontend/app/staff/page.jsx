@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Package, ChefHat, Truck, TrendingUp } from "lucide-react"
+import ProtectedRoute from "@/components/auth/ProtectedRoute"
 
 export default function StaffDashboardPage() {
   const router = useRouter()
@@ -43,7 +44,8 @@ export default function StaffDashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
+    <ProtectedRoute requiredRole="staff">
+      <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-6xl mx-auto">
         {/* 헤더 */}
         <div className="mb-8">
@@ -116,5 +118,6 @@ export default function StaffDashboardPage() {
         </Card>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

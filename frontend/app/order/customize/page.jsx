@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Plus, Minus, X } from "lucide-react"
+import useOrderStore from "@/store/orderStore"
 
 const MENU_ITEMS = {
   valentine: [
@@ -354,59 +355,75 @@ export default function CustomizePage() {
   const dinnerId = searchParams.get("dinner")
   const styleId = searchParams.get("style")
 
-  const [customizations, setCustomizations] = useState({})
-  const [totalPrice, setTotalPrice] = useState(0)
+  // Zustand store 사용
+  const {
+    customizations,
+    totalPrice,
+    updateCustomization,
+    removeCustomization,
+    initializeCustomizations,
+  } = useOrderStore()
+
+  // 로컬 계산용 totalPrice (Zustand와 별도로 계산)
+  const [localTotalPrice, setLocalTotalPrice] = useState(0)
 
   useEffect(() => {
     const items = MENU_ITEMS[dinnerId] || []
-    const initial = {}
-    items.forEach((item) => {
-      initial[item.id] = item.defaultQuantity
-    })
-    setCustomizations(initial)
+    // Zustand store에 초기 커스터마이징 설정
+    if (items.length > 0) {
+      initializeCustomizations(items)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dinnerId])
 
   useEffect(() => {
+    // 로컬 가격 계산 (Zustand store와 동기화)
     const items = MENU_ITEMS[dinnerId] || []
     let total = 0
     items.forEach((item) => {
       const currentQty = customizations[item.id] || 0
       total += currentQty * item.pricePerUnit
     })
-    setTotalPrice(total)
+    setLocalTotalPrice(total)
   }, [customizations, dinnerId])
 
   const handleIncrease = (itemId) => {
-    const item = MENU_ITEMS[dinnerId].find((i) => i.id === itemId)
+    const item = MENU_ITEMS[dinnerId]?.find((i) => i.id === itemId)
     if (!item) return
 
     const current = customizations[itemId] || 0
     if (current < item.maxQuantity) {
-      setCustomizations((prev) => ({
-        ...prev,
-        [itemId]: current + 1,
-      }))
+      updateCustomization(itemId, { quantity: current + 1 })
     }
   }
 
   const handleDecrease = (itemId) => {
-    const item = MENU_ITEMS[dinnerId].find((i) => i.id === itemId)
+    const item = MENU_ITEMS[dinnerId]?.find((i) => i.id === itemId)
     if (!item) return
 
     const current = customizations[itemId] || 0
     if (current > item.minQuantity) {
-      setCustomizations((prev) => ({
-        ...prev,
-        [itemId]: current - 1,
-      }))
+      updateCustomization(itemId, { quantity: current - 1 })
     }
   }
 
   const handleRemove = (itemId) => {
-    setCustomizations((prev) => ({
-      ...prev,
-      [itemId]: 0,
-    }))
+    const item = MENU_ITEMS[dinnerId]?.find((i) => i.id === itemId)
+    if (!item) return
+    
+    // 제약 조건 확인: is_required가 true이면 삭제 불가
+    if (item.isRequired) {
+      alert(`${item.name}은(는) 필수 항목입니다. 삭제할 수 없습니다.`)
+      return
+    }
+    
+    // can_remove가 false이면 삭제 불가
+    if (item.canRemove === false) {
+      alert(`${item.name}은(는) 삭제할 수 없습니다.`)
+      return
+    }
+    
+    removeCustomization(itemId)
   }
 
   const handleNext = () => {
@@ -490,16 +507,24 @@ export default function CustomizePage() {
                         <Plus className="w-4 h-4" />
                       </Button>
 
-                      {/* 삭제 버튼 (항상 표시) */}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleRemove(item.id)}
-                        disabled={currentQty === 0}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      {/* 삭제 버튼 (필수 항목이 아니고 can_remove가 true일 때만 표시) */}
+                      {(!item.isRequired && item.canRemove !== false) && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleRemove(item.id)}
+                          disabled={currentQty === 0}
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {/* 필수 항목 표시 */}
+                      {item.isRequired && (
+                        <Badge variant="outline" className="text-xs">
+                          필수
+                        </Badge>
+                      )}
                     </div>
                   </div>
 
@@ -564,7 +589,7 @@ export default function CustomizePage() {
               <div className="border-t pt-4 mb-6">
                 <div className="flex justify-between items-baseline">
                   <span className="text-lg font-bold">총 금액</span>
-                  <span className="text-2xl font-bold text-primary">₩{totalPrice.toLocaleString()}</span>
+                  <span className="text-2xl font-bold text-primary">₩{localTotalPrice.toLocaleString()}</span>
                 </div>
               </div>
 

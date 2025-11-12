@@ -16,12 +16,9 @@ export default function ProtectedRoute({ children, requiredRole = null }) {
       }
 
       if (requiredRole && role !== requiredRole) {
-        // 권한이 없으면 해당 역할의 대시보드로 리다이렉트
-        if (role === "staff") {
-          router.push("/staff")
-        } else {
-          router.push("/dashboard")
-        }
+        // 권한이 없으면 unauthorized 페이지로 리다이렉트
+        router.push("/auth/unauthorized")
+        return
       }
     }
   }, [user, role, loading, requiredRole, router])

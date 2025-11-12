@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Package } from "lucide-react"
+import ProtectedRoute from "@/components/auth/ProtectedRoute"
 
 // 7가지 재료 정의
 const INGREDIENTS = [
@@ -76,7 +77,8 @@ export default function StaffIngredientsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
+    <ProtectedRoute requiredRole="staff">
+      <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">재료 입고 관리</h1>
         <p className="text-muted-foreground mb-8">재료를 입고하고 재고를 관리하세요</p>
@@ -195,5 +197,6 @@ export default function StaffIngredientsPage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   )
 }

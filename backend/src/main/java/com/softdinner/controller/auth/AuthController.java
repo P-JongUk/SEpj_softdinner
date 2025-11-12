@@ -2,14 +2,13 @@ package com.softdinner.controller.auth;
 
 import com.softdinner.dto.*;
 import com.softdinner.service.AuthService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
+import jakarta.validation.*;
+import lombok.*;
+import lombok.extern.slf4j.*;
+import org.springframework.http.*;
+import org.springframework.security.access.prepost.*;
+import org.springframework.security.core.*;
+import org.springframework.security.core.userdetails.*;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -49,9 +48,10 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Login error: {}", e.getMessage(), e);
+            // Use the exception message directly (already user-friendly from AuthService)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(AuthResponseDTO.builder()
-                            .message("Login failed: " + e.getMessage())
+                            .message(e.getMessage())
                             .build());
         }
     }

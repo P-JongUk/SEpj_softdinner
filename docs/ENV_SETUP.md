@@ -87,8 +87,9 @@ cp .env.example .env.local
 SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...  # service_role key 사용
 CORS_ALLOWED_ORIGINS=http://localhost:3000
-JWT_SECRET=your-jwt-secret-key-change-in-production
 ```
+
+⚠️ **주의**: `JWT_SECRET`은 필요하지 않습니다. Supabase Auth가 JWT 토큰을 발급하고 검증하므로 별도의 JWT_SECRET이 필요 없습니다.
 
 ### 3. 환경변수 설명
 
@@ -97,11 +98,11 @@ JWT_SECRET=your-jwt-secret-key-change-in-production
 | `SUPABASE_URL` | Supabase 프로젝트 URL | `https://xxxxx.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key (서버 전용) | `eyJhbGc...` |
 | `CORS_ALLOWED_ORIGINS` | CORS 허용 Origin (쉼표로 구분) | `http://localhost:3000,http://localhost:3001` |
-| `JWT_SECRET` | JWT 토큰 서명용 비밀키 | `your-jwt-secret-key` (프로덕션에서는 반드시 변경!) |
+
+**참고**: JWT 토큰은 Supabase Auth가 자동으로 발급하고 검증하므로 별도의 `JWT_SECRET` 환경변수가 필요하지 않습니다.
 
 ⚠️ **중요**: 
 - `SUPABASE_SERVICE_ROLE_KEY`는 **Service Role Key**를 사용해야 합니다. 이 키는 RLS를 우회하고 모든 권한을 가지므로 절대 클라이언트에 노출하지 마세요!
-- `JWT_SECRET`은 프로덕션 환경에서 반드시 강력한 랜덤 문자열로 변경하세요!
 
 ---
 

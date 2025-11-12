@@ -364,29 +364,29 @@
        ├─ requiredRole 파라미터 지원 ⭐
        └─ 접근 권한 없으면 /auth로 이동
 
-[ ] Task 3.5: 백엔드 인증 미들웨어 (Spring Security)
-    ├─ backend/src/main/java/com/softdinner/config/SecurityConfig.java
-    │  ├─ JWT 필터 설정
-    │  ├─ CORS 설정
-    │  └─ 보안 규칙 설정
-    ├─ backend/src/main/java/com/softdinner/security/JwtAuthenticationFilter.java
-    │  ├─ Authorization 헤더에서 JWT 토큰 추출
-    │  ├─ Supabase 토큰 검증
-    │  └─ SecurityContext에 사용자 정보 추가
-    └─ @PreAuthorize 어노테이션으로 보호된 API 제어
+[x] Task 3.5: 백엔드 인증 미들웨어 (Spring Security)
+    ├─ backend/src/main/java/com/softdinner/config/SecurityConfig.java ✅
+    │  ├─ JWT 필터 설정 ✅
+    │  ├─ CORS 설정 ✅
+    │  └─ 보안 규칙 설정 ✅
+    ├─ backend/src/main/java/com/softdinner/security/JwtAuthenticationFilter.java ✅
+    │  ├─ Authorization 헤더에서 JWT 토큰 추출 ✅
+    │  ├─ Supabase 토큰 검증 ✅
+    │  └─ SecurityContext에 사용자 정보 추가 ✅
+    └─ @PreAuthorize 어노테이션으로 보호된 API 제어 ✅
 
-[ ] Task 3.6: 현재 사용자 정보 API
-    ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
-    │  ├─ @GetMapping("/api/auth/me")
-    │  ├─ @PreAuthorize("isAuthenticated()")
-    │  └─ AuthService.getCurrentUser() 호출
-    ├─ backend/src/main/java/com/softdinner/service/AuthService.java
-    │  ├─ 현재 사용자 정보 조회
-    │  ├─ role, loyalty_tier 등 포함
-    │  └─ UserDTO 반환
-    ├─ frontend/context/AuthContext.jsx 수정
-    │  └─ /api/auth/me 호출을 Spring Boot API로 변경 (NEXT_PUBLIC_API_URL 사용)
-    └─ frontend/app/api/auth/me/route.js 삭제 (Spring Boot API로 대체됨)
+[x] Task 3.6: 현재 사용자 정보 API
+    ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java ✅
+    │  ├─ @GetMapping("/api/auth/me") ✅
+    │  ├─ @PreAuthorize("isAuthenticated()") ✅
+    │  └─ AuthService.getCurrentUser() 호출 ✅
+    ├─ backend/src/main/java/com/softdinner/service/AuthService.java ✅
+    │  ├─ 현재 사용자 정보 조회 ✅
+    │  ├─ role, loyalty_tier 등 포함 ✅
+    │  └─ UserDTO 반환 ✅
+    ├─ frontend/context/AuthContext.jsx 수정 ✅
+    │  └─ /api/auth/me 호출을 Spring Boot API로 변경 (NEXT_PUBLIC_API_URL 사용) ✅
+    └─ frontend/app/api/auth/me/route.js 삭제 (Spring Boot API로 대체됨) ✅
 
 [ ] Task 3.7: Zustand 상태 관리 (선택사항 강화)
     ├─ npm install zustand (이미 설치됨)
@@ -396,13 +396,13 @@
     │  └─ totalPrice 상태
     └─ Redux DevTools 통합 (디버깅용)
 
-[ ] Task 3.8: 로그아웃 기능
-    ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java
-    │  ├─ @PostMapping("/api/auth/logout")
-    │  └─ 로그아웃 처리 (클라이언트에서 토큰 삭제)
-    ├─ frontend/context/AuthContext.jsx 수정
-    │  └─ 로그아웃 시 Spring Boot API 호출 (선택사항, 클라이언트에서 처리 가능)
-    └─ frontend/app/api/auth/logout/route.js 삭제 (Spring Boot API로 대체됨)
+[x] Task 3.8: 로그아웃 기능
+    ├─ backend/src/main/java/com/softdinner/controller/auth/AuthController.java ✅
+    │  ├─ @PostMapping("/api/auth/logout") ✅
+    │  └─ 로그아웃 처리 (클라이언트에서 토큰 삭제) ✅
+    ├─ frontend/context/AuthContext.jsx 수정 ✅
+    │  └─ 로그아웃 시 Spring Boot API 호출 (선택사항, 클라이언트에서 처리 가능) ✅
+    └─ frontend/app/api/auth/logout/route.js 삭제 (Spring Boot API로 대체됨) ✅
 
 [ ] Task 3.9: Git 커밋 (인증 시스템)
     ├─ git checkout -b feature/task-bundle-3
@@ -425,22 +425,22 @@
 │  메뉴 조회 & 디너 선택 페이지                 │
 └─────────────────────────────────────────────────┘
 
-[ ] Task 4.1: 메뉴 조회 API
-    ├─ backend/src/main/java/com/softdinner/controller/menu/MenuController.java
-    │  ├─ @GetMapping("/api/menus")
-    │  │  └─ 모든 디너 목록 조회
-    │  ├─ @GetMapping("/api/menus/{dinnerId}")
-    │  │  └─ 특정 디너 상세 정보
-    │  └─ @GetMapping("/api/menus/{dinnerId}/items")
-    │     └─ 디너별 메뉴 항목 조회
-    ├─ backend/src/main/java/com/softdinner/service/MenuService.java
-    │  ├─ findAllDinners(): 모든 디너 조회
-    │  ├─ findDinnerById(): 디너 상세 조회
-    │  └─ findMenuItemsByDinnerId(): 메뉴 항목 조회
-    ├─ backend/src/main/java/com/softdinner/repository/MenuRepository.java
-    │  └─ Supabase API 호출 (WebClient 사용)
-    └─ frontend/lib/services/menu.service.js
-       └─ API 호출 서비스 함수
+[x] Task 4.1: 메뉴 조회 API
+    ├─ backend/src/main/java/com/softdinner/controller/menu/MenuController.java ✅
+    │  ├─ @GetMapping("/api/menus") ✅
+    │  │  └─ 모든 디너 목록 조회 ✅
+    │  ├─ @GetMapping("/api/menus/{dinnerId}") ✅
+    │  │  └─ 특정 디너 상세 정보 ✅
+    │  └─ @GetMapping("/api/menus/{dinnerId}/items") ✅
+    │     └─ 디너별 메뉴 항목 조회 ✅
+    ├─ backend/src/main/java/com/softdinner/service/MenuService.java ✅
+    │  ├─ findAllDinners(): 모든 디너 조회 ✅
+    │  ├─ findDinnerById(): 디너 상세 조회 ✅
+    │  └─ findMenuItemsByDinnerId(): 메뉴 항목 조회 ✅
+    ├─ backend/src/main/java/com/softdinner/repository/MenuRepository.java ✅
+    │  └─ Supabase API 호출 (WebClient 사용) ✅
+    └─ frontend/lib/services/menu.service.js ✅
+       └─ API 호출 서비스 함수 ✅
 
 [x] Task 4.2: 디너 목록 페이지
     ├─ frontend/app/dinners/page.jsx (페이지)
@@ -507,12 +507,12 @@
     │  └─ 추가 시 가격 표시
     └─ 3️⃣ 선택 요약 (텍스트 목록)
 
-[ ] Task 5.3: 커스터마이징 상태 관리 (Zustand) ⭐
-    ├─ frontend/src/store/orderStore.js 업데이트
-    ├─ addCustomization(item): 음식 추가 ⭐
-    ├─ removeCustomization(itemId): 음식 삭제 ⭐
-    ├─ updateCustomization(itemId, updates): 수량 변경 ⭐
-    └─ customizationAdditions: 누적 추가 가격
+[x] Task 5.3: 커스터마이징 상태 관리 (Zustand) ⭐
+    ├─ frontend/store/orderStore.js 생성 ✅
+    ├─ addCustomization(item): 음식 추가 ⭐ ✅
+    ├─ removeCustomization(itemId): 음식 삭제 ⭐ ✅
+    ├─ updateCustomization(itemId, updates): 수량 변경 ⭐ ✅
+    └─ customizationAdditions: 누적 추가 가격 ✅
 
 [x] Task 5.4: 실시간 가격 계산 (매우 중요!) ⭐⭐
     ├─ 페이지 내 구현
@@ -538,12 +538,12 @@
     │  └─ 최종 가격 (굵은 글씨)
     └─ 선택된 음식 목록 표시
 
-[ ] Task 5.6: 제약 조건 적용 ⭐
-    ├─ menu_items 테이블의 제약 조건 반영
-    ├─ 필수 항목 (is_required): 삭제 불가 ⭐
-    ├─ 선택 항목 (is_optional): 삭제 가능
-    ├─ 수량 범위 (min_quantity ~ max_quantity): 버튼 활성/비활성
-    └─ 예: 샴페인 1~3병, 바게트빵 1~6개 등
+[x] Task 5.6: 제약 조건 적용 ⭐
+    ├─ menu_items 테이블의 제약 조건 반영 ✅
+    ├─ 필수 항목 (is_required): 삭제 불가 ⭐ ✅
+    ├─ 선택 항목 (is_optional): 삭제 가능 ✅
+    ├─ 수량 범위 (min_quantity ~ max_quantity): 버튼 활성/비활성 ✅
+    └─ 예: 샴페인 1~3병, 바게트빵 1~6개 등 ✅
 
 [ ] Task 5.7: 커스터마이징 예시 (데모 시나리오)
     ├─ 샴페인 축제 디너 선택
@@ -590,42 +590,42 @@
     ├─ 결제 방식 선택 (추가 결제 게이트웨이 통합 옵션)
     └─ "결제하기" 버튼
 
-[ ] Task 6.3: 주문 생성 API ⭐⭐
-    ├─ backend/src/main/java/com/softdinner/controller/order/OrderController.java
-    │  ├─ @PostMapping("/api/orders")
-    │  ├─ @PreAuthorize("isAuthenticated()")
-    │  └─ OrderService.createOrder() 호출
-    ├─ backend/src/main/java/com/softdinner/service/OrderService.java
-    │  ├─ 1️⃣ 사용자의 현재 loyalty_tier 조회
-    │  ├─ 2️⃣ 할인율 계산 (tier별)
-    │  │  ├─ bronze: 0%, silver: 5%, gold: 10%, platinum: 20%
-    │  │  └─ 기본 가격에서 할인액 자동 계산 ⭐
-    │  ├─ 3️⃣ orders 테이블에 저장
-    │  │  ├─ order_items (JSONB): 디너, 스타일, 커스터마이징
-    │  │  ├─ total_price, discount_applied, final_price
-    │  │  └─ delivery_date 저장 ⭐
-    │  ├─ 4️⃣ total_orders, total_spent 업데이트 ⭐
-    │  ├─ 5️⃣ loyalty_tier 자동 업그레이드 확인 ⭐⭐
-    │  │  ├─ LoyaltyService.updateLoyaltyTier() 호출
-    │  │  ├─ 새 등급 결정
-    │  │  └─ 등급 변경 시 loyalty_history 기록
-    │  ├─ 6️⃣ loyalty_history에 할인 기록 저장 ⭐
-    │  ├─ 7️⃣ cooking_task 자동 생성 (요리 대기 상태)
-    │  └─ OrderResponseDTO 반환
-    └─ 응답: { order, discount, loyaltyUpdate, message }
+[x] Task 6.3: 주문 생성 API ⭐⭐
+    ├─ backend/src/main/java/com/softdinner/controller/order/OrderController.java ✅
+    │  ├─ @PostMapping("/api/orders") ✅
+    │  ├─ @PreAuthorize("isAuthenticated()") ✅
+    │  └─ OrderService.createOrder() 호출 ✅
+    ├─ backend/src/main/java/com/softdinner/service/OrderService.java ✅
+    │  ├─ 1️⃣ 사용자의 현재 loyalty_tier 조회 ✅
+    │  ├─ 2️⃣ 할인율 계산 (tier별) ✅
+    │  │  ├─ bronze: 0%, silver: 5%, gold: 10%, platinum: 20% ✅
+    │  │  └─ 기본 가격에서 할인액 자동 계산 ⭐ ✅
+    │  ├─ 3️⃣ orders 테이블에 저장 ✅
+    │  │  ├─ order_items (JSONB): 디너, 스타일, 커스터마이징 ✅
+    │  │  ├─ total_price, discount_applied, final_price ✅
+    │  │  └─ delivery_date 저장 ⭐ ✅
+    │  ├─ 4️⃣ total_orders, total_spent 업데이트 ⭐ ✅
+    │  ├─ 5️⃣ loyalty_tier 자동 업그레이드 확인 ⭐⭐ ✅
+    │  │  ├─ LoyaltyService.updateLoyaltyTier() 호출 ✅
+    │  │  ├─ 새 등급 결정 ✅
+    │  │  └─ 등급 변경 시 loyalty_history 기록 (TODO)
+    │  ├─ 6️⃣ loyalty_history에 할인 기록 저장 ⭐ (TODO)
+    │  ├─ 7️⃣ cooking_task 자동 생성 (요리 대기 상태) (TODO)
+    │  └─ OrderResponseDTO 반환 ✅
+    └─ 응답: { order, discount, loyaltyUpdate, message } ✅
 
-[ ] Task 6.4: 단골 할인 자동 적용 로직 ⭐⭐⭐
-    ├─ backend/src/main/java/com/softdinner/service/LoyaltyService.java
-    │  ├─ determineLoyaltyTier(totalOrders, totalSpent)
-    │  │  ├─ 주문 횟수와 지출액으로 등급 결정
-    │  │  └─ 가장 높은 기준을 만족하는 등급 반환
-    │  ├─ updateLoyaltyTier(userId, newOrders, newSpent)
-    │  │  ├─ 현재 등급과 새 등급 비교
-    │  │  ├─ 변경 시 loyalty_history 기록
-    │  │  └─ LoyaltyUpdateResult 반환
-    │  └─ getDiscountRateByTier(tier)
-    │     └─ tier별 할인율 반환
-    └─ 주문 완료 후 자동 등급 업그레이드! ⭐
+[x] Task 6.4: 단골 할인 자동 적용 로직 ⭐⭐⭐
+    ├─ backend/src/main/java/com/softdinner/service/LoyaltyService.java ✅
+    │  ├─ determineLoyaltyTier(totalOrders, totalSpent) ✅
+    │  │  ├─ 주문 횟수와 지출액으로 등급 결정 ✅
+    │  │  └─ 가장 높은 기준을 만족하는 등급 반환 ✅
+    │  ├─ updateLoyaltyTier(userId, newOrders, newSpent) ✅
+    │  │  ├─ 현재 등급과 새 등급 비교 ✅
+    │  │  ├─ 변경 시 loyalty_history 기록 (TODO)
+    │  │  └─ LoyaltyUpdateResult 반환 ✅
+    │  └─ getDiscountRateByTier(tier) ✅
+    │     └─ tier별 할인율 반환 ✅
+    └─ 주문 완료 후 자동 등급 업그레이드! ⭐ ✅
 
 [ ] Task 6.5: 단골 등급 자동 업그레이드 예시
     ├─ 사용자가 5번째 주문 완료 (총 100,000원 이상 지출)
@@ -663,16 +663,16 @@
 │  주문 히스토리 조회 & 상세 보기 ⭐            │
 └─────────────────────────────────────────────────┘
 
-[ ] Task 7.1: 주문 히스토리 조회 API
-    ├─ backend/src/main/java/com/softdinner/controller/order/OrderController.java
-    │  ├─ @GetMapping("/api/orders")
-    │  ├─ @PreAuthorize("isAuthenticated()")
-    │  └─ OrderService.getUserOrders() 호출
-    ├─ backend/src/main/java/com/softdinner/service/OrderService.java
-    │  ├─ 현재 사용자의 주문 목록 조회
-    │  ├─ 최근순 정렬 (order_date DESC)
-    │  └─ 각 주문: 주문시간, 디너명, 가격, 배달시간, 주소 ⭐
-    └─ frontend/lib/services/order.service.js
+[x] Task 7.1: 주문 히스토리 조회 API
+    ├─ backend/src/main/java/com/softdinner/controller/order/OrderController.java ✅
+    │  ├─ @GetMapping("/api/orders") ✅
+    │  ├─ @PreAuthorize("isAuthenticated()") ✅
+    │  └─ OrderService.getUserOrders() 호출 ✅
+    ├─ backend/src/main/java/com/softdinner/service/OrderService.java ✅
+    │  ├─ 현재 사용자의 주문 목록 조회 ✅
+    │  ├─ 최근순 정렬 (order_date DESC) ✅
+    │  └─ 각 주문: 주문시간, 디너명, 가격, 배달시간, 주소 ⭐ ✅
+    └─ frontend/lib/services/order.service.js ✅
 
 [x] Task 7.2: 주문 히스토리 페이지 UI ⭐
     ├─ frontend/app/dashboard/page.jsx (페이지)
@@ -702,17 +702,17 @@
     │  └─ 진행률 바(%)
     └─ 최근 할인 기록 5개
 
-[ ] Task 7.5: 백엔드 API 추가
-    ├─ backend/src/main/java/com/softdinner/controller/user/UserController.java
-    │  ├─ @GetMapping("/api/users/loyalty")
-    │  ├─ @PreAuthorize("isAuthenticated()")
-    │  └─ LoyaltyService.getLoyaltyInfo() 호출
-    ├─ backend/src/main/java/com/softdinner/service/LoyaltyService.java
-    │  ├─ 현재 사용자의 단골 정보 조회
-    │  ├─ tier, totalOrders, totalSpent, discountRate
-    │  ├─ nextTier 정보, 진행률
-    │  └─ 최근 할인 기록 5개
-    └─ LoyaltyInfoDTO 반환
+[x] Task 7.5: 백엔드 API 추가
+    ├─ backend/src/main/java/com/softdinner/controller/user/UserController.java ✅
+    │  ├─ @GetMapping("/api/users/loyalty") ✅
+    │  ├─ @PreAuthorize("isAuthenticated()") ✅
+    │  └─ LoyaltyService.getLoyaltyInfo() 호출 ✅
+    ├─ backend/src/main/java/com/softdinner/service/LoyaltyService.java ✅
+    │  ├─ 현재 사용자의 단골 정보 조회 ✅
+    │  ├─ tier, totalOrders, totalSpent, discountRate ✅
+    │  ├─ nextTier 정보, 진행률 ✅
+    │  └─ 최근 할인 기록 5개 ✅
+    └─ LoyaltyInfoDTO 반환 ✅
 
 [ ] Task 7.6: Git 커밋 (주문 히스토리)
     ├─ git checkout -b feature/task-bundle-7
@@ -747,10 +747,10 @@
     ├─ 배달 관리 (Delivery) → /staff/delivery
     └─ 로그아웃
 
-[ ] Task 8.3: 직원용 ProtectedRoute 업데이트
-    ├─ frontend/src/components/auth/ProtectedRoute.jsx
-    ├─ <ProtectedRoute requiredRole="staff"> 지원 ⭐
-    └─ staff가 아니면 /auth/unauthorized로 이동
+[x] Task 8.3: 직원용 ProtectedRoute 업데이트
+    ├─ frontend/components/auth/ProtectedRoute.jsx ✅
+    ├─ <ProtectedRoute requiredRole="staff"> 지원 ⭐ ✅
+    └─ staff가 아니면 /auth/unauthorized로 이동 ✅
 
 [ ] Task 8.4: 직원 컨텍스트 (선택사항)
     ├─ frontend/src/context/StaffContext.jsx

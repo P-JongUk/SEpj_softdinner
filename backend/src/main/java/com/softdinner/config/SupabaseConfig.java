@@ -1,9 +1,8 @@
 package com.softdinner.config;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.beans.factory.annotation.*;
+import org.springframework.context.annotation.*;
+import org.springframework.web.reactive.function.client.*;
 
 @Configuration
 public class SupabaseConfig {
@@ -14,10 +13,13 @@ public class SupabaseConfig {
     @Value("${supabase.service-role-key}")
     private String serviceRoleKey;
     
+    @Value("${supabase.anon-key}")
+    private String anonKey;
+    
     @Bean
     public WebClient supabaseWebClient() {
         return WebClient.builder()
-                .baseUrl(supabaseUrl)
+                .baseUrl(supabaseUrl != null ? supabaseUrl : "") // NOSONAR - @Value ensures non-null
                 .defaultHeader("apikey", serviceRoleKey)
                 .defaultHeader("Authorization", "Bearer " + serviceRoleKey)
                 .build();
@@ -31,6 +33,11 @@ public class SupabaseConfig {
     @Bean
     public String supabaseServiceRoleKey() {
         return serviceRoleKey;
+    }
+    
+    @Bean
+    public String supabaseAnonKey() {
+        return anonKey;
     }
 }
 

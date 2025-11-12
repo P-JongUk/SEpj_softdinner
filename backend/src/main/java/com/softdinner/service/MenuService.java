@@ -1,0 +1,107 @@
+package com.softdinner.service;
+
+import com.softdinner.dto.*;
+import com.softdinner.repository.MenuRepository;
+import lombok.extern.slf4j.*;
+import org.springframework.stereotype.*;
+
+import java.util.*;
+import java.util.stream.*;
+
+@Slf4j
+@Service
+public class MenuService {
+
+    private final MenuRepository menuRepository;
+
+    public MenuService(MenuRepository menuRepository) {
+        this.menuRepository = menuRepository;
+    }
+
+    public List<DinnerDTO> findAllDinners() {
+        List<Map<String, Object>> dinners = menuRepository.findAllDinners();
+        
+        return dinners.stream()
+                .map(this::mapToDinnerDTO)
+                .collect(Collectors.toList());
+    }
+
+    public DinnerDTO findDinnerById(String dinnerId) {
+        Map<String, Object> dinner = menuRepository.findDinnerById(dinnerId);
+        
+        if (dinner == null) {
+            return null;
+        }
+        
+        return mapToDinnerDTO(dinner);
+    }
+
+    public List<MenuItemDTO> findMenuItemsByDinnerId(String dinnerId) {
+        List<Map<String, Object>> items = menuRepository.findMenuItemsByDinnerId(dinnerId);
+        
+        return items.stream()
+                .map(this::mapToMenuItemDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<StyleDTO> findAllStyles() {
+        List<Map<String, Object>> styles = menuRepository.findAllStyles();
+        
+        return styles.stream()
+                .map(this::mapToStyleDTO)
+                .collect(Collectors.toList());
+    }
+
+    private DinnerDTO mapToDinnerDTO(Map<String, Object> data) {
+        @SuppressWarnings("unchecked")
+        List<String> availableStyles = data.get("available_styles") != null 
+                ? (List<String>) data.get("available_styles") 
+                : new ArrayList<>();
+
+        return DinnerDTO.builder()
+                .id((String) data.get("id"))
+                .name((String) data.get("name"))
+                .basePrice(((Number) data.get("base_price")).doubleValue())
+                .description((String) data.get("description"))
+                .availableStyles(availableStyles)
+                .imageUrl((String) data.get("image_url"))
+                .isAvailable((Boolean) data.get("is_available"))
+                .build();
+    }
+
+    private MenuItemDTO mapToMenuItemDTO(Map<String, Object> data) {
+        return MenuItemDTO.builder()
+                .id((String) data.get("id"))
+                .dinnerId((String) data.get("dinner_id"))
+                .name((String) data.get("name"))
+                .defaultQuantity((Integer) data.get("default_quantity"))
+                .unit((String) data.get("unit"))
+                .basePrice(data.get("base_price") != null 
+                        ? ((Number) data.get("base_price")).doubleValue() 
+                        : null)
+                .additionalPrice(data.get("additional_price") != null 
+                        ? ((Number) data.get("additional_price")).doubleValue() 
+                        : null)
+                .isRequired((Boolean) data.get("is_required"))
+                .canRemove((Boolean) data.get("can_remove"))
+                .canIncrease((Boolean) data.get("can_increase"))
+                .canDecrease((Boolean) data.get("can_decrease"))
+                .maxQuantity((Integer) data.get("max_quantity"))
+                .minQuantity((Integer) data.get("min_quantity"))
+                .ingredientId((String) data.get("ingredient_id"))
+                .ingredientQuantityPerUnit(data.get("ingredient_quantity_per_unit") != null 
+                        ? ((Number) data.get("ingredient_quantity_per_unit")).doubleValue() 
+                        : null)
+                .build();
+    }
+
+    private StyleDTO mapToStyleDTO(Map<String, Object> data) {
+        return StyleDTO.builder()
+                .id((String) data.get("id"))
+                .name((String) data.get("name"))
+                .priceModifier(((Number) data.get("price_modifier")).doubleValue())
+                .details((String) data.get("details"))
+                .build();
+    }
+}
+

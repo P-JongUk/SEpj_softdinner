@@ -8,66 +8,49 @@ import { ShoppingBag, ChevronRight, Package, Loader2 } from "lucide-react"
 import Header from "@/components/common/header"
 import Footer from "@/components/common/footer"
 import LoyaltyCard from "@/components/common/loyalty-card"
+import { useAuth } from "@/context/AuthContext"
+import { orderService } from "@/lib/services/order.service"
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
   const [orders, setOrders] = useState([])
   const [reordering, setReordering] = useState(null)
 
   useEffect(() => {
-    // TODO: Supabase에서 실제 인증 상태 확인
-    const mockUser = {
-      id: "1",
-      email: "customer@example.com",
-      full_name: "홍길동",
-      loyalty_tier: "gold",
-      loyalty_points: 750,
-    }
-
-    // 로그인 안 되어 있으면 로그인 페이지로
-    if (!mockUser) {
+    if (!authLoading && !user) {
       router.push("/auth")
       return
     }
 
-    setUser(mockUser)
+    if (user) {
+      loadOrders()
+    }
+  }, [user, authLoading, router])
 
-    // TODO: Supabase에서 실제 주문 내역 조회
-    const mockOrders = [
-      {
-        id: "1",
-        dinner_name: "발렌타인 디너",
-        dinner_style: "Grand",
-        created_at: "2024-01-15T18:30:00",
-        delivery_date: "2024-02-14",
-        total_price: 145000,
-        status: "delivered",
-        customizations: [
-          { name: "스테이크", quantity: 2, unit_price: 35000 },
-          { name: "로제 와인", quantity: 1, unit_price: 45000 },
-          { name: "초콜릿 케이크", quantity: 1, unit_price: 15000 },
-        ],
-      },
-      {
-        id: "2",
-        dinner_name: "프렌치 디너",
-        dinner_style: "Deluxe",
-        created_at: "2024-01-10T15:20:00",
-        delivery_date: "2024-01-25",
-        total_price: 180000,
-        status: "delivered",
-        customizations: [
-          { name: "푸아그라", quantity: 2, unit_price: 55000 },
-          { name: "샴페인", quantity: 1, unit_price: 65000 },
-        ],
-      },
-    ]
-
-    setOrders(mockOrders)
-    setLoading(false)
-  }, [router])
+  const loadOrders = async () => {
+    try {
+      const ordersData = await orderService.getUserOrders()
+      // API 응답을 기존 형식에 맞게 변환
+      const formattedOrders = ordersData.map((order) => ({
+        id: order.id,
+        dinner_name: order.dinnerName || "알 수 없음",
+        dinner_style: order.styleName || "알 수 없음",
+        created_at: order.orderDate,
+        delivery_date: order.deliveryDate,
+        total_price: order.finalPrice,
+        status: order.deliveryStatus || order.cookingStatus || "pending",
+        customizations: order.orderItems?.customizations || {},
+      }))
+      setOrders(formattedOrders)
+    } catch (error) {
+      console.error("주문 내역 조회 실패:", error)
+      setOrders([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleReorder = async (order) => {
     setReordering(order.id)

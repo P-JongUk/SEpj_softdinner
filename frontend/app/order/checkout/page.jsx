@@ -13,10 +13,17 @@ import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import Header from "@/components/common/header"
 import Footer from "@/components/common/footer"
+import { orderAPI } from "@/lib/api"
+import { useAuth } from "@/context/AuthContext"
+import useOrderStore from "@/store/orderStore"
 
 export default function CheckoutPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user, loading: authLoading } = useAuth()
+  
+  const dinnerId = searchParams.get("dinner")
+  const styleId = searchParams.get("style")
 
   const [deliveryAddress, setDeliveryAddress] = useState("")
   const [deliveryDate, setDeliveryDate] = useState(null)
@@ -25,25 +32,15 @@ export default function CheckoutPage() {
   const [cvc, setCvc] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // Zustand store에서 커스터마이징 정보 가져오기
+  const { customizations } = useOrderStore()
 
   useEffect(() => {
-    // TODO: Supabase에서 실제 인증 상태 확인
-    const mockUser = {
-      id: "1",
-      email: "customer@example.com",
-      full_name: "홍길동",
-    }
-
-    if (!mockUser) {
+    if (!authLoading && !user) {
       router.push("/auth")
       return
     }
-
-    setUser(mockUser)
-    setLoading(false)
-  }, [router])
+  }, [user, authLoading, router])
 
   const handleSubmitOrder = async () => {
     if (!deliveryAddress || !deliveryDate) {
@@ -51,24 +48,42 @@ export default function CheckoutPage() {
       return
     }
 
+    if (!dinnerId || !styleId) {
+      alert("주문 정보가 올바르지 않습니다. 다시 시도해주세요.")
+      router.push("/dinners")
+      return
+    }
+
     setIsProcessing(true)
 
     try {
-      // API 호출하여 주문 생성
-      // const response = await fetch('/api/orders', { method: 'POST', ... })
+      // 주문 데이터 구성
+      const orderData = {
+        dinnerId: dinnerId,
+        styleId: styleId,
+        deliveryAddress: deliveryAddress,
+        deliveryDate: deliveryDate.toISOString(),
+        customizations: customizations || {},
+        paymentInfo: {
+          cardNumber: cardNumber,
+          expiryDate: expiryDate,
+          cvc: cvc,
+        },
+      }
 
-      // 성공 시 완료 페이지로 이동
-      setTimeout(() => {
-        router.push("/order/success")
-      }, 2000)
+      // API 호출하여 주문 생성
+      const response = await orderAPI.createOrder(orderData)
+
+      // 성공 시 완료 페이지로 이동 (주문 ID 전달)
+      router.push(`/order/success?orderId=${response.id}`)
     } catch (error) {
       console.error("주문 실패:", error)
-      alert("주문에 실패했습니다")
+      alert(`주문에 실패했습니다: ${error.message}`)
       setIsProcessing(false)
     }
   }
 
-  if (loading) {
+  if (authLoading) {
     return (
       <>
         <Header user={user} role="customer" />
