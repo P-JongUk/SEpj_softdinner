@@ -172,15 +172,28 @@ public class OrderRepository {
      */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getUserOrders(String userId) {
-        List<Map<String, Object>> result = supabaseWebClient.get()
-                .uri(supabaseUrl + "/rest/v1/orders?user_id=eq." + userId + "&order=order_date.desc")
-                .header("Authorization", "Bearer " + supabaseServiceRoleKey)
-                .header("apikey", supabaseServiceRoleKey)
-                .retrieve()
-                .bodyToMono(List.class)
-                .block();
+        try {
+            String uri = supabaseUrl + "/rest/v1/orders?user_id=eq." + userId + "&order=order_date.desc";
+            log.debug("Fetching orders from: {}", uri);
+            
+            List<Map<String, Object>> result = supabaseWebClient.get()
+                    .uri(uri)
+                    .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                    .header("apikey", supabaseServiceRoleKey)
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .block();
 
-        return result != null ? result : new java.util.ArrayList<>();
+            log.debug("Retrieved {} orders from Supabase for user {}", result != null ? result.size() : 0, userId);
+            if (result != null && !result.isEmpty()) {
+                log.debug("First order sample: {}", result.get(0));
+            }
+
+            return result != null ? result : new java.util.ArrayList<>();
+        } catch (Exception e) {
+            log.error("Error fetching user orders: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch user orders: " + e.getMessage(), e);
+        }
     }
 }
 

@@ -48,12 +48,18 @@ public class OrderController {
         try {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String userId = userDetails.getUsername();
+            
+            log.debug("Getting orders for user: {}", userId);
 
             List<OrderHistoryDTO> orders = orderService.getUserOrders(userId);
+            log.debug("Returning {} orders", orders.size());
+            
             return ResponseEntity.ok(orders);
         } catch (Exception e) {
             log.error("Error getting user orders: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .header("X-Error-Message", e.getMessage())
+                    .build();
         }
     }
 }

@@ -170,9 +170,14 @@ public class OrderService {
             log.debug("Retrieved {} orders for user {}", orders.size(), userId);
             
             return orders.stream().map(order -> {
+                log.debug("Processing order: {}", order.get("id"));
                 Map<String, Object> orderItems = (Map<String, Object>) order.get("order_items");
+                log.debug("Order items from DB: {}", orderItems);
+                
                 String dinnerName = orderItems != null ? (String) orderItems.get("dinner_name") : null;
                 String styleName = orderItems != null ? (String) orderItems.get("style_name") : null;
+                
+                log.debug("Extracted dinnerName: {}, styleName: {}", dinnerName, styleName);
                 
                 // LocalDateTime 변환
                 LocalDateTime orderDate = null;
