@@ -70,9 +70,10 @@ public class OrderService {
 
             // 5. 주문 데이터 구성
             Map<String, Object> orderItems = new HashMap<>();
-            orderItems.put("dinner_id", request.getDinnerId());
+            // dinner와 style에서 실제 UUID 가져오기
+            orderItems.put("dinner_id", dinner.get("id")); // 실제 UUID 사용
             orderItems.put("dinner_name", dinner.get("name"));
-            orderItems.put("style_id", request.getStyleId());
+            orderItems.put("style_id", style.get("id")); // 실제 UUID 사용
             orderItems.put("style_name", style.get("name"));
             orderItems.put("customizations", request.getCustomizations() != null ? request.getCustomizations() : Map.of());
 
