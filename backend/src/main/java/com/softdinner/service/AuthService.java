@@ -92,7 +92,7 @@ public class AuthService {
             Map<String, Object> authRequest = new HashMap<>();
             authRequest.put("email", request.getEmail());
             authRequest.put("password", request.getPassword());
-            authRequest.put("email_confirmed", true); // Auto-confirm email
+            authRequest.put("email_confirm", true); // Auto-confirm email (use email_confirm, not email_confirmed)
             authRequest.put("user_metadata", Map.of(
                     "full_name", request.getFullName(),
                     "phone", request.getPhone() != null ? request.getPhone() : "",
@@ -162,10 +162,10 @@ public class AuthService {
                     log.info("Current user email_confirmed status: {}", emailConfirmed);
                     
                     // Update user with password and email_confirmed
+                    // Supabase Admin API uses "email_confirm" (not "email_confirmed") for updating
                     Map<String, Object> userUpdateRequest = new HashMap<>();
                     userUpdateRequest.put("password", request.getPassword());
-                    userUpdateRequest.put("email_confirmed", true);
-                    userUpdateRequest.put("email_confirm", true); // Try both field names
+                    userUpdateRequest.put("email_confirm", true); // Use email_confirm for update
                     
                     @SuppressWarnings("unchecked")
                     Map<String, Object> updatedUser = supabaseWebClient.put()
@@ -254,6 +254,8 @@ public class AuthService {
             authRequest.put("email", request.getEmail());
             authRequest.put("password", request.getPassword());
 
+            log.info("Calling Supabase Auth API: {}", supabaseUrl + "/auth/v1/token?grant_type=password");
+            
             @SuppressWarnings("unchecked")
             Map<String, Object> authResponse = supabaseWebClient.post()
                     .uri(supabaseUrl + "/auth/v1/token?grant_type=password")
@@ -303,6 +305,8 @@ public class AuthService {
                     })
                     .bodyToMono(Map.class)
                     .block();
+            
+            log.info("Supabase Auth response received: {}", authResponse != null ? "success" : "null");
 
             if (authResponse == null) {
                 throw new RuntimeException("이메일 또는 비밀번호가 올바르지 않습니다.");
