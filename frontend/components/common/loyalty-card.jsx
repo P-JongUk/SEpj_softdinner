@@ -13,7 +13,7 @@ export default function LoyaltyCard({ tier, totalOrders, totalSpent, discountRat
     platinum: "플래티넘",
   }
 
-  const progress = nextTier ? ((totalOrders / nextTier.minOrders) * 100).toFixed(0) : 100
+  const progress = nextTier && totalOrders ? ((Number(totalOrders) / nextTier.minOrders) * 100).toFixed(0) : 100
 
   return (
     <div className="bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20 rounded-xl p-6 shadow-lg">
@@ -31,24 +31,24 @@ export default function LoyaltyCard({ tier, totalOrders, totalSpent, discountRat
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white/50 rounded-lg p-3">
             <div className="text-xs text-muted-foreground mb-1">총 주문</div>
-            <div className="text-lg font-bold text-foreground">{totalOrders}회</div>
+            <div className="text-lg font-bold text-foreground">{Number(totalOrders || 0)}회</div>
           </div>
           <div className="bg-white/50 rounded-lg p-3">
             <div className="text-xs text-muted-foreground mb-1">총 지출</div>
-            <div className="text-lg font-bold text-foreground">₩{totalSpent.toLocaleString()}</div>
+            <div className="text-lg font-bold text-foreground">₩{Number(totalSpent || 0).toLocaleString()}</div>
           </div>
         </div>
 
         <div className="bg-white/50 rounded-lg p-4">
           <div className="text-sm text-muted-foreground mb-2">현재 할인율</div>
-          <div className="text-3xl font-bold text-green-600">{discountRate}%</div>
+          <div className="text-3xl font-bold text-green-600">{Number(discountRate || 0)}%</div>
         </div>
 
         {nextTier && (
           <div className="bg-white/50 rounded-lg p-4">
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-muted-foreground">다음 등급까지</span>
-              <span className="text-foreground font-bold text-primary">{nextTier.minOrders - totalOrders}회 남음</span>
+              <span className="text-foreground font-bold text-primary">{nextTier.minOrders - Number(totalOrders || 0)}회 남음</span>
             </div>
             <div className="w-full bg-muted rounded-full h-3">
               <div

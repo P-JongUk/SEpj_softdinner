@@ -10,6 +10,7 @@ import Footer from "@/components/common/footer"
 import LoyaltyCard from "@/components/common/loyalty-card"
 import { useAuth } from "@/context/AuthContext"
 import { orderService } from "@/lib/services/order.service"
+import { apiRequest } from "@/lib/api"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState([])
   const [reordering, setReordering] = useState(null)
+  const [loyaltyInfo, setLoyaltyInfo] = useState(null)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -26,8 +28,21 @@ export default function DashboardPage() {
 
     if (user) {
       loadOrders()
+      loadLoyaltyInfo()
     }
   }, [user, authLoading, router])
+  
+  const loadLoyaltyInfo = async () => {
+    try {
+      const info = await apiRequest('/api/users/loyalty', {
+        method: 'GET',
+      })
+      setLoyaltyInfo(info)
+    } catch (error) {
+      console.error('단골 정보 조회 실패:', error)
+      // 실패해도 계속 진행 (기본값 사용)
+    }
+  }
 
   const loadOrders = async () => {
     try {
@@ -112,7 +127,13 @@ export default function DashboardPage() {
 
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2">
-              <LoyaltyCard tier={user.loyalty_tier} points={user.loyalty_points} />
+              <LoyaltyCard 
+                tier={loyaltyInfo?.tier || user?.loyaltyTier || user?.loyalty_tier || 'bronze'} 
+                totalOrders={loyaltyInfo?.totalOrders || user?.totalOrders || user?.total_orders || 0}
+                totalSpent={loyaltyInfo?.totalSpent || user?.totalSpent || user?.total_spent || 0}
+                discountRate={loyaltyInfo?.discountRate || 0}
+                nextTier={loyaltyInfo?.nextTier}
+              />
             </div>
 
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-6 flex flex-col justify-center items-center text-center">
