@@ -7,73 +7,72 @@ import { Card } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import Header from "@/components/common/header"
 import Footer from "@/components/common/footer"
+import { menuAPI } from "@/lib/services/menu.service"
+import { useAuth } from "@/context/AuthContext"
 
-// 4가지 디너 정의
-const DINNERS = [
-  {
-    id: "valentine",
-    name: "발렌타인 디너",
-    description: "사랑하는 사람과 함께하는 로맨틱한 디너. 와인과 스테이크로 특별한 밤을 만들어보세요.",
-    basePrice: 89000,
-    icon: "💝",
-    image: "/valentine-dinner.jpg",
-    availableStyles: ["simple", "grand", "deluxe"],
-    defaultItems: ["스테이크", "와인 1병", "샐러드", "디저트"],
-  },
-  {
-    id: "french",
-    name: "프렌치 디너",
-    description: "정통 프랑스 요리의 우아함. 섬세한 맛과 향으로 미식의 즐거움을 선사합니다.",
-    basePrice: 120000,
-    icon: "🇫🇷",
-    image: "/french-dinner.jpg",
-    availableStyles: ["simple", "grand", "deluxe"],
-    defaultItems: ["프렌치 코스 요리", "와인 1병", "바게트빵", "치즈"],
-  },
-  {
-    id: "english",
-    name: "잉글리시 디너",
-    description: "클래식한 영국 정통 요리. 품격있는 식사 경험을 제공합니다.",
-    basePrice: 95000,
-    icon: "🇬🇧",
-    image: "/english-dinner.jpg",
-    availableStyles: ["simple", "grand", "deluxe"],
-    defaultItems: ["로스트 비프", "요크셔 푸딩", "채소", "와인 1병"],
-  },
-  {
-    id: "champagne",
-    name: "샴페인 축제 디너",
-    description: "특별한 날을 위한 최고급 디너. 프리미엄 샴페인과 함께하는 럭셔리 경험.",
-    basePrice: 180000,
-    icon: "🍾",
-    image: "/champagne-dinner.jpg",
-    availableStyles: ["grand", "deluxe"], // Simple 불가!
-    defaultItems: ["샴페인 1병", "고급 스테이크", "바게트빵 4개", "커피"],
-  },
-]
+// 아이콘 매핑 (DB에 없는 필드이므로 이름으로 매핑)
+const getDinnerIcon = (name) => {
+  const iconMap = {
+    "Valentine Dinner": "💝",
+    "French Dinner": "🇫🇷",
+    "English Dinner": "🇬🇧",
+    "Champagne Feast": "🍾",
+  }
+  return iconMap[name] || "🍽️"
+}
 
 export default function DinnersPage() {
   const router = useRouter()
-  const [selectedDinner, setSelectedDinner] = useState(null)
-  const [user, setUser] = useState(null)
+  const { user, loading: authLoading } = useAuth()
+  const [dinners, setDinners] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    // TODO: Supabase에서 실제 인증 상태 확인
-    const mockUser = {
-      id: "1",
-      email: "customer@example.com",
-      full_name: "홍길동",
-    }
-
-    if (!mockUser) {
+    if (!authLoading && !user) {
       router.push("/auth")
       return
     }
 
-    setUser(mockUser)
-    setLoading(false)
-  }, [router])
+    if (user) {
+      loadDinners()
+    }
+  }, [user, authLoading, router])
+
+  const loadDinners = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const dinnersData = await menuAPI.getAllDinners()
+      
+      // 디너 이름을 키로 변환 (예: "French Dinner" -> "french")
+      const formattedDinners = dinnersData.map((dinner) => {
+        const nameKey = dinner.name.toLowerCase().replace(/\s+/g, '').replace('dinner', '')
+        const id = nameKey === 'french' ? 'french' : 
+                   nameKey === 'english' ? 'english' : 
+                   nameKey === 'valentine' ? 'valentine' : 
+                   nameKey === 'champagne' || nameKey === 'champagnefeast' ? 'champagne' : 
+                   dinner.id
+        
+        return {
+          id: id,
+          name: dinner.name,
+          description: dinner.description || "",
+          basePrice: Number(dinner.basePrice || 0),
+          icon: getDinnerIcon(dinner.name),
+          availableStyles: dinner.availableStyles || ["simple", "grand", "deluxe"],
+        }
+      })
+      
+      setDinners(formattedDinners)
+    } catch (err) {
+      console.error("디너 목록 조회 실패:", err)
+      setError(err.message || "디너 목록을 불러오는데 실패했습니다.")
+      setDinners([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSelectDinner = (dinner) => {
     router.push(`/dinners/${dinner.id}`)
