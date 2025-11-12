@@ -46,23 +46,72 @@ export default function DashboardPage() {
 
   const loadOrders = async () => {
     try {
+      setLoading(true)
       const ordersData = await orderService.getUserOrders()
       console.log("주문 내역 API 응답:", ordersData)
+      console.log("주문 내역 개수:", ordersData?.length || 0)
+      
+      if (!ordersData || ordersData.length === 0) {
+        console.warn("주문 내역이 없습니다")
+        setOrders([])
+        setLoading(false)
+        return
+      }
+      
       // API 응답을 기존 형식에 맞게 변환
-      const formattedOrders = ordersData.map((order) => ({
-        id: order.id,
-        dinner_name: order.dinnerName || "알 수 없음",
-        dinner_style: order.styleName || "알 수 없음",
-        created_at: order.orderDate ? new Date(order.orderDate).toISOString() : null,
-        delivery_date: order.deliveryDate ? new Date(order.deliveryDate).toISOString() : null,
-        total_price: typeof order.finalPrice === 'number' ? order.finalPrice : Number(order.finalPrice) || 0,
-        status: order.deliveryStatus || order.cookingStatus || "pending",
-        customizations: order.orderItems?.customizations || {},
-      }))
+      const formattedOrders = ordersData.map((order) => {
+        // 날짜 처리: LocalDateTime이 문자열로 오거나 객체로 올 수 있음
+        let orderDateStr = null
+        let deliveryDateStr = null
+        
+        if (order.orderDate) {
+          if (typeof order.orderDate === 'string') {
+            orderDateStr = order.orderDate
+          } else if (order.orderDate instanceof Date) {
+            orderDateStr = order.orderDate.toISOString()
+          } else {
+            // 배열 형식 [년, 월, 일, 시, 분, 초]일 수 있음
+            try {
+              orderDateStr = new Date(order.orderDate).toISOString()
+            } catch (e) {
+              console.warn("주문일 변환 실패:", order.orderDate)
+            }
+          }
+        }
+        
+        if (order.deliveryDate) {
+          if (typeof order.deliveryDate === 'string') {
+            deliveryDateStr = order.deliveryDate
+          } else if (order.deliveryDate instanceof Date) {
+            deliveryDateStr = order.deliveryDate.toISOString()
+          } else {
+            try {
+              deliveryDateStr = new Date(order.deliveryDate).toISOString()
+            } catch (e) {
+              console.warn("배달일 변환 실패:", order.deliveryDate)
+            }
+          }
+        }
+        
+        return {
+          id: order.id,
+          dinner_name: order.dinnerName || order.orderItems?.dinner_name || "알 수 없음",
+          dinner_style: order.styleName || order.orderItems?.style_name || "알 수 없음",
+          created_at: orderDateStr,
+          delivery_date: deliveryDateStr,
+          total_price: typeof order.finalPrice === 'number' 
+            ? order.finalPrice 
+            : (order.finalPrice ? Number(order.finalPrice) : 0),
+          status: order.deliveryStatus || order.cookingStatus || order.paymentStatus || "pending",
+          customizations: order.orderItems?.customizations || {},
+        }
+      })
+      
       console.log("변환된 주문 내역:", formattedOrders)
       setOrders(formattedOrders)
     } catch (error) {
       console.error("주문 내역 조회 실패:", error)
+      console.error("에러 상세:", error.message, error.stack)
       setOrders([])
     } finally {
       setLoading(false)

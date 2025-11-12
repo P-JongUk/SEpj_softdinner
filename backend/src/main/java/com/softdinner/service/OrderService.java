@@ -167,6 +167,7 @@ public class OrderService {
     public List<OrderHistoryDTO> getUserOrders(String userId) {
         try {
             List<Map<String, Object>> orders = orderRepository.getUserOrders(userId);
+            log.debug("Retrieved {} orders for user {}", orders.size(), userId);
             
             return orders.stream().map(order -> {
                 Map<String, Object> orderItems = (Map<String, Object>) order.get("order_items");
