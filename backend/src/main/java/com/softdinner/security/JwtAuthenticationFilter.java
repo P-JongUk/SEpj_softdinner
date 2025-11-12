@@ -23,6 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final WebClient supabaseWebClient;
     private final String supabaseUrl;
+    private final String supabaseAnonKey;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
@@ -68,11 +69,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private Map<String, Object> verifyTokenWithSupabase(String token) {
         try {
             // Call Supabase Auth API to verify token
+            // Use anon key for token verification (same as login)
             @SuppressWarnings("unchecked")
             Map<String, Object> response = supabaseWebClient.get()
                     .uri(supabaseUrl + "/auth/v1/user")
                     .header("Authorization", "Bearer " + token)
-                    .header("apikey", supabaseUrl) // This should be the anon key, but we'll use service role key
+                    .header("apikey", supabaseAnonKey) // Use anon key for token verification
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();

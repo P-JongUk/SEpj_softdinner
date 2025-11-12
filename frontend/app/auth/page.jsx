@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label"
 import Header from "@/components/common/header"
 import Footer from "@/components/common/footer"
 import { authAPI } from "@/lib/api"
+import { useAuth } from "@/context/AuthContext"
 
 export default function AuthPage() {
   const router = useRouter()
+  const { refreshUser } = useAuth()
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -81,6 +83,14 @@ export default function AuthPage() {
         localStorage.setItem('accessToken', response.accessToken)
         if (response.refreshToken) {
           localStorage.setItem('refreshToken', response.refreshToken)
+        }
+        
+        // AuthContext 업데이트 (사용자 정보 새로고침)
+        try {
+          await refreshUser()
+        } catch (err) {
+          console.warn('Failed to refresh user context:', err)
+          // Continue anyway - user data might be in response
         }
         
         // 역할에 따라 자동 라우팅
