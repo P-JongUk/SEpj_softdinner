@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.*;
 import org.springframework.web.filter.*;
 import org.springframework.web.reactive.function.client.*;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.io.*;
 import java.util.*;
@@ -80,8 +81,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .block();
             
             return response;
+        } catch (WebClientResponseException e) {
+            // 403 Forbidden은 인증되지 않은 요청이거나 만료된 토큰일 수 있음 (정상적인 경우)
+            if (e.getStatusCode().value() == 403 || e.getStatusCode().value() == 401) {
+                log.debug("Token verification failed (unauthorized/forbidden): {}", e.getMessage());
+            } else {
+                log.warn("Error verifying token with Supabase (status {}): {}", 
+                        e.getStatusCode().value(), e.getMessage());
+            }
+            return null;
         } catch (Exception e) {
-            log.error("Error verifying token with Supabase: {}", e.getMessage());
+            log.warn("Error verifying token with Supabase: {}", e.getMessage());
             return null;
         }
     }

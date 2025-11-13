@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -16,8 +16,12 @@ const getItemIcon = (name) => {
     "스테이크": "🥩",
     "와인": "🍷",
     "바게트빵": "🥖",
+    "빵": "🥖",
     "커피": "☕",
     "샴페인": "🍾",
+    "샐러드": "🥗",
+    "베이컨": "🥓",
+    "에그스크램블": "🍳",
     "로제 와인": "🍷",
     "비프 스테이크": "🥩",
     "랍스터": "🦞",
@@ -70,6 +74,7 @@ export default function CustomizePage() {
   const [localTotalPrice, setLocalTotalPrice] = useState(0)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const loadingRef = useRef(false) // 중복 API 호출 방지
 
   useEffect(() => {
     let isMounted = true
@@ -83,22 +88,42 @@ export default function CustomizePage() {
         return
       }
 
+      // 이미 로딩 중이면 중복 호출 방지
+      if (loadingRef.current) {
+        console.log("이미 메뉴 항목을 로딩 중입니다. 중복 호출을 방지합니다.")
+        return
+      }
+
       try {
+        loadingRef.current = true
         if (isMounted) {
           setLoading(true)
           setItems([]) // 기존 items 초기화
         }
         
         // API에서 메뉴 항목 조회
+        console.log("🔍 메뉴 항목 조회 시작 - dinnerId:", dinnerId)
         const menuItems = await menuAPI.getMenuItemsByDinnerId(dinnerId)
         
         if (!isMounted) return
         
         // API 응답이 있고 비어있지 않으면 사용
         if (menuItems && menuItems.length > 0) {
-          console.log("API에서 받은 메뉴 항목 수:", menuItems.length)
+          console.log("📦 API에서 받은 메뉴 항목 수:", menuItems.length)
+          console.log("📦 API 응답 전체:", JSON.stringify(menuItems, null, 2))
           
-          // Map을 사용하여 id 기준으로 확실하게 중복 제거
+          // 중복 ID 확인
+          const ids = menuItems.map(item => item?.id).filter(Boolean)
+          const uniqueIds = [...new Set(ids)]
+          if (ids.length !== uniqueIds.length) {
+            console.error("⚠️ API 응답에 중복된 ID가 있습니다!", {
+              총개수: ids.length,
+              고유개수: uniqueIds.length,
+              중복ID: ids.filter((id, index) => ids.indexOf(id) !== index)
+            })
+          }
+          
+          // 1단계: API 응답에서 id 기준으로 중복 제거
           const itemMap = new Map()
           const seenIds = new Set()
           
@@ -106,7 +131,7 @@ export default function CustomizePage() {
             if (item && item.id) {
               // id가 이미 본 적이 있으면 스킵
               if (seenIds.has(item.id)) {
-                console.warn("중복된 메뉴 항목 발견:", item.id, item.name)
+                console.warn("중복된 메뉴 항목 발견 (API 응답):", item.id, item.name)
                 return
               }
               seenIds.add(item.id)
@@ -115,31 +140,33 @@ export default function CustomizePage() {
           })
           
           const uniqueMenuItems = Array.from(itemMap.values())
-          console.log("중복 제거 후 메뉴 항목 수:", uniqueMenuItems.length)
+          console.log("1단계 중복 제거 후 메뉴 항목 수:", uniqueMenuItems.length)
           
-          // DB 응답을 프론트엔드 형식으로 변환
-          const formattedItems = uniqueMenuItems.map((item) => ({
-            id: item.id,
-            name: item.name,
-            unit: item.unit,
-            defaultQuantity: item.defaultQuantity || 1,
-            pricePerUnit: item.additionalPrice || 0,
-            minQuantity: item.minQuantity || 0,
-            maxQuantity: item.maxQuantity || 999,
-            isRequired: item.isRequired || false,
-            canRemove: item.canRemove !== false, // 기본값 true
-            icon: getItemIcon(item.name),
-          }))
-
-          // 최종 중복 제거: Map을 사용하여 한 번 더 확인
-          const finalItemMap = new Map()
-          formattedItems.forEach((item) => {
-            if (item && item.id && !finalItemMap.has(item.id)) {
-              finalItemMap.set(item.id, item)
+          // 2단계: DB 응답을 프론트엔드 형식으로 변환하면서 중복 확인
+          const formattedItemMap = new Map()
+          uniqueMenuItems.forEach((item) => {
+            if (item && item.id && !formattedItemMap.has(item.id)) {
+              formattedItemMap.set(item.id, {
+                id: item.id,
+                name: item.name,
+                unit: item.unit,
+                defaultQuantity: item.defaultQuantity || 1,
+                pricePerUnit: item.additionalPrice || 0,
+                minQuantity: item.minQuantity || 0,
+                maxQuantity: item.maxQuantity || 999,
+                isRequired: item.isRequired || false,
+                canRemove: item.canRemove !== false, // 기본값 true
+                canIncrease: item.canIncrease !== false, // 기본값 true
+                canDecrease: item.canDecrease !== false, // 기본값 true
+                icon: getItemIcon(item.name),
+              })
+            } else if (item && item.id && formattedItemMap.has(item.id)) {
+              console.warn("중복된 메뉴 항목 발견 (포맷팅 중):", item.id, item.name)
             }
           })
           
-          const finalItems = Array.from(finalItemMap.values())
+          const finalItems = Array.from(formattedItemMap.values())
+          console.log("최종 메뉴 항목 수 (중복 제거 완료):", finalItems.length)
           
           if (isMounted) {
             setItems(finalItems)
@@ -202,45 +229,54 @@ export default function CustomizePage() {
           setItems([])
         }
       } finally {
+        loadingRef.current = false
         if (isMounted) {
           setLoading(false)
         }
       }
     }
 
-    // dinnerId가 변경될 때만 실행
+    // dinnerId가 변경될 때만 실행 (reorderId는 재주문 데이터 복원에만 사용)
     if (dinnerId) {
       loadMenuItems()
     }
     
     return () => {
       isMounted = false
+      loadingRef.current = false // cleanup 시 로딩 상태 초기화
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dinnerId, reorderId])
+  }, [dinnerId]) // reorderId는 의존성에서 제거 (재주문 데이터는 loadMenuItems 내부에서 처리)
   
-  // 중복 방지: Map을 사용하여 id 기준으로 확실하게 중복 제거
-  const uniqueItemsMap = new Map()
-  items.forEach((item) => {
-    if (item && item.id && !uniqueItemsMap.has(item.id)) {
-      uniqueItemsMap.set(item.id, item)
-    }
-  })
-  const uniqueItems = Array.from(uniqueItemsMap.values())
+  // 중복 방지: useMemo를 사용하여 id 기준으로 확실하게 중복 제거 (메모이제이션)
+  const uniqueItems = useMemo(() => {
+    const uniqueItemsMap = new Map()
+    items.forEach((item) => {
+      if (item && item.id && !uniqueItemsMap.has(item.id)) {
+        uniqueItemsMap.set(item.id, item)
+      }
+    })
+    return Array.from(uniqueItemsMap.values())
+  }, [items])
 
   useEffect(() => {
     // 로컬 가격 계산 (Zustand store와 동기화)
     let total = 0
-    items.forEach((item) => {
+    uniqueItems.forEach((item) => {
       const currentQty = customizations[item.id] || 0
       total += currentQty * item.pricePerUnit
     })
     setLocalTotalPrice(total)
-  }, [customizations, items])
+  }, [customizations, uniqueItems])
 
   const handleIncrease = (itemId) => {
-    const item = items.find((i) => i.id === itemId)
+    const item = uniqueItems.find((i) => i.id === itemId)
     if (!item) return
+
+    // can_increase가 false이면 증가 불가
+    if (item.canIncrease === false) {
+      return
+    }
 
     const current = customizations[itemId] || 0
     if (current < item.maxQuantity) {
@@ -249,8 +285,13 @@ export default function CustomizePage() {
   }
 
   const handleDecrease = (itemId) => {
-    const item = items.find((i) => i.id === itemId)
+    const item = uniqueItems.find((i) => i.id === itemId)
     if (!item) return
+
+    // can_decrease가 false이면 감소 불가
+    if (item.canDecrease === false) {
+      return
+    }
 
     const current = customizations[itemId] || 0
     if (current > item.minQuantity) {
@@ -259,7 +300,7 @@ export default function CustomizePage() {
   }
 
   const handleRemove = (itemId) => {
-    const item = items.find((i) => i.id === itemId)
+    const item = uniqueItems.find((i) => i.id === itemId)
     if (!item) return
     
     // 제약 조건 확인: is_required가 true이면 삭제 불가
@@ -278,6 +319,14 @@ export default function CustomizePage() {
   }
 
   const handleNext = () => {
+    // 커스터마이징 정보 확인
+    console.log("✅ 커스터마이징 페이지 - 다음 버튼 클릭:", {
+      dinnerId,
+      styleId,
+      customizations,
+      customizationsCount: Object.keys(customizations || {}).length
+    })
+    
     // 주문 폼으로 이동
     router.push(`/order/checkout?dinner=${dinnerId}&style=${styleId}`)
   }
@@ -350,7 +399,7 @@ export default function CustomizePage() {
                         size="icon"
                         variant="outline"
                         onClick={() => handleDecrease(item.id)}
-                        disabled={currentQty <= item.minQuantity}
+                        disabled={currentQty <= item.minQuantity || item.canDecrease === false}
                       >
                         <Minus className="w-4 h-4" />
                       </Button>
@@ -366,7 +415,7 @@ export default function CustomizePage() {
                         size="icon"
                         variant="outline"
                         onClick={() => handleIncrease(item.id)}
-                        disabled={currentQty >= item.maxQuantity}
+                        disabled={currentQty >= item.maxQuantity || item.canIncrease === false}
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -452,7 +501,7 @@ export default function CustomizePage() {
 
               <div className="border-t pt-4 mb-6">
                 <div className="flex justify-between items-baseline">
-                  <span className="text-lg font-bold">총 금액</span>
+                  <span className="text-lg font-bold">추가 가격</span>
                   <span className="text-2xl font-bold text-primary">₩{localTotalPrice.toLocaleString()}</span>
                 </div>
               </div>

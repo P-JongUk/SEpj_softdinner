@@ -43,23 +43,41 @@ public class MenuService {
             return new ArrayList<>();
         }
         
-        // 중복 제거: id를 기준으로 중복 제거 (LinkedHashMap으로 순서 유지)
-        Map<String, MenuItemDTO> uniqueItems = new LinkedHashMap<>();
+        // 중복 제거: 이름 기준으로 중복 제거 (같은 이름의 메뉴는 하나만 유지)
+        // 먼저 ID 기준으로 중복 제거, 그 다음 이름 기준으로 중복 제거
+        Map<String, MenuItemDTO> uniqueById = new LinkedHashMap<>();
         Set<String> seenIds = new HashSet<>();
         
+        // 1단계: ID 기준 중복 제거
         for (Map<String, Object> item : items) {
             if (item == null) continue;
             
             String itemId = (String) item.get("id");
             if (itemId != null && !itemId.isEmpty() && !seenIds.contains(itemId)) {
                 seenIds.add(itemId);
-                uniqueItems.put(itemId, mapToMenuItemDTO(item));
+                uniqueById.put(itemId, mapToMenuItemDTO(item));
             }
         }
         
-        log.debug("Menu items for dinner {}: total={}, unique={}", dinnerId, items.size(), uniqueItems.size());
+        // 2단계: 이름 기준 중복 제거 (같은 이름이면 첫 번째 것만 유지)
+        Map<String, MenuItemDTO> uniqueByName = new LinkedHashMap<>();
+        Set<String> seenNames = new HashSet<>();
         
-        return new ArrayList<>(uniqueItems.values());
+        for (MenuItemDTO item : uniqueById.values()) {
+            String itemName = item.getName();
+            if (itemName != null && !itemName.isEmpty() && !seenNames.contains(itemName)) {
+                seenNames.add(itemName);
+                uniqueByName.put(item.getId(), item);
+            } else if (itemName != null && seenNames.contains(itemName)) {
+                log.warn("중복된 메뉴 항목 이름 발견 (제거됨): dinner_id={}, name={}, id={}", 
+                        dinnerId, itemName, item.getId());
+            }
+        }
+        
+        log.debug("Menu items for dinner {}: total={}, unique_by_id={}, unique_by_name={}", 
+                dinnerId, items.size(), uniqueById.size(), uniqueByName.size());
+        
+        return new ArrayList<>(uniqueByName.values());
     }
 
     public List<StyleDTO> findAllStyles() {

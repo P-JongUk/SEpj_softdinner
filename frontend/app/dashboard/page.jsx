@@ -164,6 +164,7 @@ export default function DashboardPage() {
           id: order.id,
           dinner_name: order.dinnerName || order.orderItems?.dinner_name || "알 수 없음",
           dinner_style: order.styleName || order.orderItems?.style_name || "알 수 없음",
+          dinner_style_id: order.orderItems?.style_id || null, // 스타일 UUID (재주문 시 사용)
           created_at: orderDateStr,
           delivery_date: deliveryDateStr,
           total_price: finalPriceValue || totalPriceValue, // 할인 및 커스터마이징이 반영된 최종 가격 (없으면 원래 가격)
@@ -221,9 +222,12 @@ export default function DashboardPage() {
                      dinnerKey === 'valentine' ? 'valentine' : 
                      dinnerKey === 'champagne' ? 'champagne' : order.dinner_name
     
+    // 스타일 ID 우선 사용 (없으면 이름 사용)
+    const styleId = order.dinner_style_id || order.dinner_style
+    
     // 잠시 로딩 표시 후 커스터마이징 페이지로 이동
     setTimeout(() => {
-      router.push(`/order/customize?dinner=${dinnerId}&style=${order.dinner_style}&reorder=${order.id}`)
+      router.push(`/order/customize?dinner=${dinnerId}&style=${styleId}&reorder=${order.id}`)
     }, 500)
   }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -50,6 +50,7 @@ export default function CheckoutPage() {
 
   // Zustand store에서 커스터마이징 정보 가져오기
   const { customizations } = useOrderStore()
+  const loadingRef = useRef(false) // 중복 API 호출 방지
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -57,7 +58,8 @@ export default function CheckoutPage() {
       return
     }
     
-    if (user && dinnerId && styleId) {
+    if (user && dinnerId && styleId && !loadingRef.current) {
+      loadingRef.current = true
       loadOrderData()
       loadLoyaltyInfo()
     }
@@ -65,20 +67,31 @@ export default function CheckoutPage() {
   
   const loadOrderData = async () => {
     try {
+      console.log("🔍 Checkout 페이지 - 주문 데이터 로드 시작:", { dinnerId, styleId, customizations })
+      
       // 디너 정보
       const dinnerData = await menuAPI.getDinnerById(dinnerId)
+      console.log("📦 디너 데이터:", dinnerData)
       setDinner(dinnerData)
       
-      // 스타일 정보
+      // 스타일 정보 (UUID 또는 이름으로 찾기)
       const stylesData = await menuAPI.getAllStyles()
-      const selectedStyleData = stylesData.find(s => s.id === styleId)
+      // 먼저 ID로 찾고, 없으면 이름으로 찾기
+      let selectedStyleData = stylesData.find(s => s.id === styleId)
+      if (!selectedStyleData) {
+        // UUID가 아니면 이름으로 찾기
+        selectedStyleData = stylesData.find(s => s.name?.toLowerCase() === styleId?.toLowerCase())
+      }
+      console.log("📦 스타일 데이터:", selectedStyleData, "styleId:", styleId)
       setStyle(selectedStyleData)
       
       // 메뉴 항목 (커스터마이징 가격 계산용)
       const itemsData = await menuAPI.getMenuItemsByDinnerId(dinnerId)
+      console.log("📦 메뉴 항목 데이터:", itemsData)
       setMenuItems(itemsData || [])
     } catch (error) {
       console.error("주문 정보 로드 실패:", error)
+      loadingRef.current = false
     }
   }
   
@@ -93,7 +106,10 @@ export default function CheckoutPage() {
   
   // 가격 계산
   useEffect(() => {
-    if (!dinner || !style) return
+    if (!dinner || !style) {
+      console.log("⚠️ 가격 계산 대기 중 - dinner:", dinner, "style:", style)
+      return
+    }
     
     const basePrice = Number(dinner.basePrice || 0)
     const stylePrice = Number(style.priceModifier || 0)
@@ -101,10 +117,25 @@ export default function CheckoutPage() {
     // 커스터마이징 가격 계산
     let customizationPrice = 0
     if (menuItems && menuItems.length > 0 && customizations) {
+      console.log("💰 커스터마이징 가격 계산:", {
+        menuItemsCount: menuItems.length,
+        customizations: customizations,
+        customizationsKeys: Object.keys(customizations || {})
+      })
+      
       menuItems.forEach((item) => {
         const qty = customizations[item.id] || 0
         const additionalPrice = Number(item.additionalPrice || 0)
+        if (qty > 0) {
+          console.log(`  - ${item.name}: ${qty} × ${additionalPrice} = ${qty * additionalPrice}`)
+        }
         customizationPrice += qty * additionalPrice
+      })
+    } else {
+      console.warn("⚠️ 커스터마이징 데이터 없음:", {
+        menuItems: menuItems?.length || 0,
+        customizations: customizations,
+        customizationsType: typeof customizations
       })
     }
     
@@ -115,16 +146,16 @@ export default function CheckoutPage() {
     const discountAmount = subtotal * discountRate
     const finalPrice = subtotal - discountAmount
     
-    // 디버깅: 등급과 할인율 확인
-    if (loyaltyInfo) {
-      console.log("Checkout 할인 정보:", {
-        tier: loyaltyInfo.tier,
-        discountRate: discountRate,
-        discountAmount: discountAmount,
-        subtotal: subtotal,
-        finalPrice: finalPrice
-      })
-    }
+    console.log("💰 최종 가격 계산:", {
+      basePrice,
+      stylePrice,
+      customizationPrice,
+      subtotal,
+      discountRate,
+      discountAmount,
+      finalPrice,
+      loyaltyTier: loyaltyInfo?.tier
+    })
     
     setPriceBreakdown({
       basePrice,
@@ -351,7 +382,7 @@ export default function CheckoutPage() {
                   )}
                   {priceBreakdown.customizationPrice > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">커스터마이징</span>
+                      <span className="text-muted-foreground">메뉴 커스터마이징 가격</span>
                       <span>₩{priceBreakdown.customizationPrice.toLocaleString()}</span>
                     </div>
                   )}

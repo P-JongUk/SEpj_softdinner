@@ -96,13 +96,32 @@ public class MenuRepository {
                 }
             }
             
+            String queryUrl = supabaseUrl + "/rest/v1/menu_items?dinner_id=eq." + actualDinnerId;
+            log.debug("Fetching menu items from Supabase: {}", queryUrl);
+            
             Map<String, Object>[] items = supabaseWebClient.get()
-                    .uri(supabaseUrl + "/rest/v1/menu_items?dinner_id=eq." + actualDinnerId)
+                    .uri(queryUrl)
                     .header("Authorization", "Bearer " + supabaseServiceRoleKey)
                     .header("apikey", supabaseServiceRoleKey)
                     .retrieve()
                     .bodyToMono(Map[].class)
                     .block();
+
+            if (items != null) {
+                log.debug("Supabase returned {} menu items for dinner_id={}", items.length, actualDinnerId);
+                // 중복 ID 확인
+                Set<String> seenIds = new HashSet<>();
+                for (Map<String, Object> item : items) {
+                    if (item != null && item.get("id") != null) {
+                        String itemId = item.get("id").toString();
+                        if (seenIds.contains(itemId)) {
+                            log.warn("⚠️ 중복된 menu_item ID 발견: {} (dinner_id={})", itemId, actualDinnerId);
+                        } else {
+                            seenIds.add(itemId);
+                        }
+                    }
+                }
+            }
 
             return items != null ? Arrays.asList(items) : new ArrayList<>();
         } catch (Exception e) {
