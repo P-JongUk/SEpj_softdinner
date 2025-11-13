@@ -407,7 +407,8 @@ export default function DashboardPage() {
                         <h4 className="text-sm font-semibold text-foreground mb-2">커스터마이징</h4>
                         <div className="space-y-1">
                           {Object.entries(order.customizations).map(([itemId, qty]) => {
-                            const itemName = menuItemMap[itemId] || itemId
+                            const itemInfo = menuItemMap[itemId]
+                            const itemName = itemInfo && typeof itemInfo === 'object' ? itemInfo.name : (itemInfo || itemId)
                             return (
                               <div key={itemId} className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">

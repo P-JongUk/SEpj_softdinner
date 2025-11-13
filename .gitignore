@@ -62,3 +62,6 @@ logs/
 
 # Docker
 .dockerignore
+
+# Trash folder (temporary files, documentation, etc.)
+trash/

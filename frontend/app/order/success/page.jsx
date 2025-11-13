@@ -351,7 +351,7 @@ export default function OrderSuccessPage() {
       
       // 유효한 날짜인지 확인
       if (isNaN(date.getTime())) {
-        console.warn("유효하지 않은 날짜:", dateString)
+        console.warn("유효하지 않은 timestamp:", dateString)
         return "알 수 없음"
       }
       
@@ -429,7 +429,7 @@ export default function OrderSuccessPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">주문일</span>
               <span className="font-medium">
-                {orderData.orderDate ? formatDateTime(orderData.orderDate) : new Date().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                {orderData.orderDate ? formatDateTime(orderData.orderDate) : formatDateTime(new Date().toISOString())}
               </span>
             </div>
             <div className="flex justify-between">
