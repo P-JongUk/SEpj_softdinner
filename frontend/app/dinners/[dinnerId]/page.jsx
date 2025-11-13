@@ -166,7 +166,16 @@ export default function DinnerDetailPage() {
               <div className="text-6xl">{dinner.icon}</div>
               <div className="flex-1">
                 <h1 className="text-3xl font-bold mb-2">{dinner.name}</h1>
-                <p className="text-muted-foreground mb-4">{dinner.description}</p>
+                {dinner.description && (() => {
+                  const [shortDesc, ...detailParts] = dinner.description.split('\n')
+                  const detailDesc = detailParts.join('\n')
+                  return (
+                    <div className="mb-4">
+                      <p className="text-base font-semibold text-foreground mb-2">{shortDesc}</p>
+                      {detailDesc && <p className="text-muted-foreground">{detailDesc}</p>}
+                    </div>
+                  )
+                })()}
                 <div className="flex items-baseline gap-2">
                   <span className="text-sm text-muted-foreground">기본 가격</span>
                   <span className="text-2xl font-bold text-primary">₩{dinner.basePrice.toLocaleString()}</span>

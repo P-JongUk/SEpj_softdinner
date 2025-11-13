@@ -16,7 +16,6 @@ const getItemIcon = (name) => {
     "스테이크": "🥩",
     "와인": "🍷",
     "바게트빵": "🥖",
-    "빵": "🥖",
     "커피": "☕",
     "샴페인": "🍾",
     "샐러드": "🥗",
@@ -150,11 +149,11 @@ export default function CustomizePage() {
                 id: item.id,
                 name: item.name,
                 unit: item.unit,
-                defaultQuantity: item.defaultQuantity || 1,
-                pricePerUnit: item.additionalPrice || 0,
-                minQuantity: item.minQuantity || 0,
-                maxQuantity: item.maxQuantity || 999,
-                isRequired: item.isRequired || false,
+                defaultQuantity: item.defaultQuantity ?? 0, // 0도 유효한 값이므로 ?? 사용
+                pricePerUnit: item.additionalPrice ?? 0,
+                minQuantity: item.minQuantity ?? 0,
+                maxQuantity: item.maxQuantity ?? 999,
+                isRequired: item.isRequired ?? false,
                 canRemove: item.canRemove !== false, // 기본값 true
                 canIncrease: item.canIncrease !== false, // 기본값 true
                 canDecrease: item.canDecrease !== false, // 기본값 true
@@ -187,12 +186,12 @@ export default function CustomizePage() {
                   initializeCustomizations(finalItems)
                 }
                 
-                // 이전 커스터마이징 복원
+                // 이전 커스터마이징 복원 (0개도 포함)
                 Object.entries(previousCustomizations).forEach(([itemId, qty]) => {
                   const item = finalItems.find(i => i.id === itemId)
-                  if (item && qty > 0 && isMounted) {
-                    // 수량이 최소/최대 범위 내인지 확인
-                    const validQty = Math.max(item.minQuantity, Math.min(item.maxQuantity, qty))
+                  if (item && isMounted) {
+                    // 수량이 최소/최대 범위 내인지 확인 (0도 허용)
+                    const validQty = qty === 0 ? 0 : Math.max(item.minQuantity, Math.min(item.maxQuantity, qty))
                     updateCustomization(itemId, { quantity: validQty })
                   }
                 })
@@ -260,11 +259,17 @@ export default function CustomizePage() {
   }, [items])
 
   useEffect(() => {
-    // 로컬 가격 계산 (Zustand store와 동기화)
+    // 로컬 가격 계산 (기본 수량 제외, 추가/감소분 반영)
     let total = 0
     uniqueItems.forEach((item) => {
-      const currentQty = customizations[item.id] || 0
-      total += currentQty * item.pricePerUnit
+      // 기본 수량이 설정되지 않았으면 defaultQuantity 사용
+      const currentQty = customizations[item.id] !== undefined 
+        ? customizations[item.id] 
+        : (item.defaultQuantity ?? 0)
+      const defaultQty = item.defaultQuantity ?? 0
+      // 기본 수량과의 차이를 가격에 반영 (추가분은 더하고, 감소분은 빼기)
+      const quantityDiff = currentQty - defaultQty
+      total += quantityDiff * item.pricePerUnit
     })
     setLocalTotalPrice(total)
   }, [customizations, uniqueItems])
@@ -315,7 +320,12 @@ export default function CustomizePage() {
       return
     }
     
-    removeCustomization(itemId)
+    // min_quantity가 0이면 0개로 설정, 아니면 완전히 삭제
+    if (item.minQuantity === 0) {
+      updateCustomization(itemId, { quantity: 0 })
+    } else {
+      removeCustomization(itemId)
+    }
   }
 
   const handleNext = () => {
@@ -352,7 +362,7 @@ export default function CustomizePage() {
 
         <h1 className="text-3xl font-bold mb-2">메뉴 커스터마이징</h1>
         <p className="text-muted-foreground mb-8">
-          모든 메뉴를 자유롭게 추가하거나 삭제할 수 있습니다. 수량을 조절하면 가격이 자동으로 계산됩니다.
+          메뉴를 자유롭게 추가하거나 삭제할 수 있습니다. 수량을 조절하면 가격이 자동으로 계산됩니다.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -364,7 +374,10 @@ export default function CustomizePage() {
               </Card>
             ) : (
               uniqueItems.map((item) => {
-              const currentQty = customizations[item.id] || 0
+              // 기본 수량이 설정되지 않았으면 defaultQuantity 사용
+              const currentQty = customizations[item.id] !== undefined 
+                ? customizations[item.id] 
+                : (item.defaultQuantity || 0)
 
               return (
                 <Card key={item.id} className="p-6">
@@ -441,33 +454,18 @@ export default function CustomizePage() {
                     </div>
                   </div>
 
-                  {/* 항목별 총 가격 표시 */}
-                  {currentQty > 0 && (
+                  {/* 항목별 추가/감소 가격 표시 (기본 수량 제외) */}
+                  {currentQty !== item.defaultQuantity && (
                     <div className="mt-4 pt-4 border-t">
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">
-                          {currentQty}
+                          기본 {item.defaultQuantity}{item.unit} 포함, {currentQty > item.defaultQuantity ? '추가' : '감소'} {Math.abs(currentQty - item.defaultQuantity)}
                           {item.unit} × ₩{item.pricePerUnit.toLocaleString()}
                         </span>
-                        <span className="font-bold text-primary text-lg">
-                          ₩{(currentQty * item.pricePerUnit).toLocaleString()}
+                        <span className={`font-bold text-lg ${currentQty > item.defaultQuantity ? 'text-primary' : 'text-green-600'}`}>
+                          {currentQty > item.defaultQuantity ? '+' : ''}₩{((currentQty - item.defaultQuantity) * item.pricePerUnit).toLocaleString()}
                         </span>
                       </div>
-                      {/* 기본 수량과 다를 경우 차이 표시 */}
-                      {currentQty !== item.defaultQuantity && (
-                        <div className="flex justify-end mt-1">
-                          <span
-                            className={`text-xs font-medium ${
-                              currentQty > item.defaultQuantity ? "text-primary" : "text-green-600"
-                            }`}
-                          >
-                            {currentQty > item.defaultQuantity ? "+" : ""}
-                            {currentQty - item.defaultQuantity}
-                            {item.unit} ({currentQty > item.defaultQuantity ? "+" : ""}₩
-                            {((currentQty - item.defaultQuantity) * item.pricePerUnit).toLocaleString()})
-                          </span>
-                        </div>
-                      )}
                     </div>
                   )}
                 </Card>
@@ -482,17 +480,24 @@ export default function CustomizePage() {
 
               <div className="space-y-3 mb-6 max-h-[400px] overflow-y-auto">
                 {uniqueItems.map((item) => {
-                  const currentQty = customizations[item.id] || 0
-                  if (currentQty === 0) return null
+                  // 기본 수량이 설정되지 않았으면 defaultQuantity 사용
+                  const currentQty = customizations[item.id] !== undefined 
+                    ? customizations[item.id] 
+                    : (item.defaultQuantity || 0)
+                  const defaultQty = item.defaultQuantity || 0
+                  const quantityDiff = currentQty - defaultQty
+                  
+                  // 기본 수량과 다른 경우만 표시
+                  if (quantityDiff === 0) return null
 
                   return (
                     <div key={item.id} className="flex justify-between text-sm gap-2">
                       <span className="text-muted-foreground">
-                        {item.icon} {item.name} {currentQty}
+                        {item.icon} {item.name} {quantityDiff > 0 ? '추가' : '감소'} {Math.abs(quantityDiff)}
                         {item.unit}
                       </span>
-                      <span className="font-medium whitespace-nowrap">
-                        ₩{(currentQty * item.pricePerUnit).toLocaleString()}
+                      <span className={`font-medium whitespace-nowrap ${quantityDiff > 0 ? 'text-primary' : 'text-green-600'}`}>
+                        {quantityDiff > 0 ? '+' : ''}₩{(quantityDiff * item.pricePerUnit).toLocaleString()}
                       </span>
                     </div>
                   )

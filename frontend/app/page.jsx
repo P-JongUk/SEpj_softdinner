@@ -1,9 +1,66 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 import Header from "@/components/common/header"
 import Footer from "@/components/common/footer"
+import { menuAPI } from "@/lib/services/menu.service"
+
+// 아이콘 매핑
+const getDinnerIcon = (name) => {
+  const iconMap = {
+    "Valentine Dinner": "💝",
+    "French Dinner": "🇫🇷",
+    "English Dinner": "🇬🇧",
+    "Champagne Feast": "🍾",
+  }
+  return iconMap[name] || "🍽️"
+}
 
 export default function HomePage() {
+  const [dinners, setDinners] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadDinners()
+  }, [])
+
+  const loadDinners = async () => {
+    try {
+      setLoading(true)
+      const dinnersData = await menuAPI.getAllDinners()
+      
+      const formattedDinners = dinnersData.map((dinner) => ({
+        id: dinner.id,
+        name: dinner.name,
+        description: dinner.description || "",
+        basePrice: Number(dinner.basePrice || 0),
+        icon: getDinnerIcon(dinner.name),
+      }))
+      
+      // 발렌타인, 프렌치, 잉글리시, 샴페인 순서로 정렬
+      const dinnerOrder = ['Valentine Dinner', 'French Dinner', 'English Dinner', 'Champagne Feast']
+      const sortedDinners = formattedDinners.sort((a, b) => {
+        const indexA = dinnerOrder.indexOf(a.name)
+        const indexB = dinnerOrder.indexOf(b.name)
+        // 순서에 없는 항목은 맨 뒤로
+        if (indexA === -1 && indexB === -1) return 0
+        if (indexA === -1) return 1
+        if (indexB === -1) return -1
+        return indexA - indexB
+      })
+      
+      setDinners(sortedDinners)
+    } catch (err) {
+      console.error("디너 목록 조회 실패:", err)
+      setDinners([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <>
       <Header />
@@ -37,51 +94,41 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-center text-foreground mb-12">
               프리미엄 디너 컬렉션
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                {
-                  name: "발렌타인 디너",
-                  description: "로맨틱한 발렌타인 특별 디너",
-                  emoji: "💝",
-                  price: "₩89,000~",
-                },
-                {
-                  name: "프렌치 디너",
-                  description: "정통 프랑스 요리의 우아함",
-                  emoji: "🇫🇷",
-                  price: "₩120,000~",
-                },
-                {
-                  name: "잉글리시 디너",
-                  description: "클래식한 영국 정통 요리",
-                  emoji: "🇬🇧",
-                  price: "₩95,000~",
-                },
-                {
-                  name: "샴페인 축제 디너",
-                  description: "프리미엄 샴페인과 함께하는 럭셔리",
-                  emoji: "🍾",
-                  price: "₩180,000~",
-                },
-              ].map((dinner) => (
-                <div
-                  key={dinner.name}
-                  className="bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer"
-                >
-                  <div className="h-48 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                    <span className="text-8xl group-hover:scale-110 transition-transform">{dinner.emoji}</span>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {dinners.map((dinner) => (
+                  <div
+                    key={dinner.id}
+                    className="bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer"
+                  >
+                    <div className="h-48 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                      <span className="text-8xl group-hover:scale-110 transition-transform">{dinner.icon}</span>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-xl font-semibold text-foreground mb-2">{dinner.name}</h3>
+                      {dinner.description && (() => {
+                        const [shortDesc, ...detailParts] = dinner.description.split('\n')
+                        const detailDesc = detailParts.join('\n')
+                        return (
+                          <div className="mb-3">
+                            <p className="text-sm font-semibold text-foreground mb-1">{shortDesc}</p>
+                            {detailDesc && <p className="text-sm text-muted-foreground">{detailDesc}</p>}
+                          </div>
+                        )
+                      })()}
+                      <p className="text-lg font-bold text-primary mb-4">₩{dinner.basePrice.toLocaleString()}~</p>
+                      <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
+                        <Link href="/dinners">자세히 보기</Link>
+                      </Button>
+                    </div>
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold text-foreground mb-2">{dinner.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3">{dinner.description}</p>
-                    <p className="text-lg font-bold text-primary mb-4">{dinner.price}</p>
-                    <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
-                      <Link href="/dinners">자세히 보기</Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

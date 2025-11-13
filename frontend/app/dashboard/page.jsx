@@ -160,6 +160,20 @@ export default function DashboardPage() {
           rawFinalPrice: order.finalPrice
         })
         
+        // 주문 상태 결정 (우선순위: 배달 완료 > 배달 시작 > 요리 완료 > 요리 시작 > 결제 대기)
+        let orderStatus = "pending" // 기본값: 결제 대기
+        if (order.deliveryStatus === "completed") {
+          orderStatus = "delivered" // 배달 완료
+        } else if (order.deliveryStatus === "in_transit") {
+          orderStatus = "delivering" // 배달 시작
+        } else if (order.cookingStatus === "completed") {
+          orderStatus = "cooking_completed" // 요리 완료
+        } else if (order.cookingStatus === "in_progress") {
+          orderStatus = "cooking_started" // 요리 시작
+        } else if (order.paymentStatus === "completed") {
+          orderStatus = "pending" // 결제 완료되었지만 아직 요리 시작 전
+        }
+        
         return {
           id: order.id,
           dinner_name: order.dinnerName || order.orderItems?.dinner_name || "알 수 없음",
@@ -170,7 +184,7 @@ export default function DashboardPage() {
           total_price: finalPriceValue || totalPriceValue, // 할인 및 커스터마이징이 반영된 최종 가격 (없으면 원래 가격)
           original_price: totalPriceValue, // 할인 전 총액
           discount_applied: discountValue, // 할인 금액
-          status: order.deliveryStatus || order.cookingStatus || order.paymentStatus || "pending",
+          status: orderStatus,
           customizations: order.orderItems?.customizations || {},
         }
       })
@@ -235,8 +249,9 @@ export default function DashboardPage() {
     const statusMap = {
       pending: "결제 대기",
       confirmed: "주문 확인",
-      cooking: "조리 중",
-      delivering: "배달 중",
+      cooking_started: "요리 시작",
+      cooking_completed: "요리 완료",
+      delivering: "배달 시작",
       delivered: "배달 완료",
       cancelled: "취소됨",
     }
@@ -247,7 +262,8 @@ export default function DashboardPage() {
     const colorMap = {
       pending: "text-yellow-600 bg-yellow-50",
       confirmed: "text-blue-600 bg-blue-50",
-      cooking: "text-orange-600 bg-orange-50",
+      cooking_started: "text-orange-600 bg-orange-50",
+      cooking_completed: "text-orange-600 bg-orange-50",
       delivering: "text-purple-600 bg-purple-50",
       delivered: "text-green-600 bg-green-50",
       cancelled: "text-red-600 bg-red-50",

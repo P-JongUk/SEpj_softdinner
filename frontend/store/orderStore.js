@@ -78,7 +78,8 @@ const useOrderStore = create(
       initializeCustomizations: (menuItems) => {
         const initial = {}
         menuItems.forEach((item) => {
-          initial[item.id] = item.defaultQuantity || 0
+          // 0도 유효한 값이므로 ?? 사용
+          initial[item.id] = item.defaultQuantity ?? 0
         })
         set({ customizations: initial })
         get().calculateTotalPrice()

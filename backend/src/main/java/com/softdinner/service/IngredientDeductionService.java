@@ -55,13 +55,15 @@ public class IngredientDeductionService {
                 return new DeductionResult(Collections.emptyList(), "No menu items found");
             }
 
-            // 4. 재료별 차감량 계산
+            // 4. 재료별 차감량 계산 및 메뉴 항목별 정보 저장
             Map<String, BigDecimal> ingredientDeductions = new HashMap<>();
+            Map<String, List<Map<String, Object>>> ingredientMenuItems = new HashMap<>(); // 재료별 메뉴 항목 정보
             List<DeductionDetail> details = new ArrayList<>();
 
             for (Map<String, Object> menuItem : menuItems) {
                 String menuItemId = menuItem.get("id").toString();
                 String menuItemName = (String) menuItem.get("name");
+                String menuItemUnit = (String) menuItem.getOrDefault("unit", "");
                 BigDecimal defaultQuantity = new BigDecimal(menuItem.get("default_quantity").toString());
                 
                 // 커스터마이징에서 실제 수량 확인
@@ -73,6 +75,11 @@ public class IngredientDeductionService {
                     } else if (customQty instanceof String) {
                         actualQuantity = new BigDecimal((String) customQty);
                     }
+                }
+
+                // 수량이 0이면 스킵
+                if (actualQuantity.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
                 }
 
                 // 재료 정보 확인
@@ -93,6 +100,14 @@ public class IngredientDeductionService {
                 // 재료별로 누적
                 ingredientDeductions.merge(ingredientId, deductionAmount, BigDecimal::add);
 
+                // 재료별 메뉴 항목 정보 저장
+                Map<String, Object> menuItemInfo = new HashMap<>();
+                menuItemInfo.put("name", menuItemName);
+                menuItemInfo.put("quantity", actualQuantity);
+                menuItemInfo.put("unit", menuItemUnit);
+                menuItemInfo.put("ingredientPerUnit", ingredientQuantityPerUnit);
+                ingredientMenuItems.computeIfAbsent(ingredientId, k -> new ArrayList<>()).add(menuItemInfo);
+
                 details.add(new DeductionDetail(
                     ingredientId,
                     menuItemName,
@@ -110,6 +125,7 @@ public class IngredientDeductionService {
             for (Map.Entry<String, BigDecimal> entry : ingredientDeductions.entrySet()) {
                 String ingredientId = entry.getKey();
                 BigDecimal deductionAmount = entry.getValue();
+                List<Map<String, Object>> menuItemsForIngredient = ingredientMenuItems.getOrDefault(ingredientId, new ArrayList<>());
 
                 try {
                     // 현재 재고 조회
@@ -132,6 +148,46 @@ public class IngredientDeductionService {
                     // 재고 업데이트
                     ingredientRepository.updateIngredientQuantity(ingredientId, newQuantity);
 
+                    // 메뉴 항목별 정보를 notes에 포함
+                    StringBuilder notesBuilder = new StringBuilder();
+                    for (Map<String, Object> menuItemInfo : menuItemsForIngredient) {
+                        String menuItemName = (String) menuItemInfo.get("name");
+                        BigDecimal menuItemQty = (BigDecimal) menuItemInfo.get("quantity");
+                        String menuItemUnit = (String) menuItemInfo.get("unit");
+                        BigDecimal ingredientPerUnit = (BigDecimal) menuItemInfo.get("ingredientPerUnit");
+                        BigDecimal totalDeduction = menuItemQty.multiply(ingredientPerUnit);
+                        
+                        if (notesBuilder.length() > 0) {
+                            notesBuilder.append(", ");
+                        }
+                        
+                        String ingredientName = (String) ingredient.get("name");
+                        String ingredientUnit = (String) ingredient.get("unit");
+                        
+                        // 포트 단위인 경우 특별 표시 (예: 커피 1포트=커피5잔 차감)
+                        if ("포트".equals(menuItemUnit) && ingredientPerUnit.compareTo(BigDecimal.ONE) > 0) {
+                            notesBuilder.append(String.format("%s %d%s=%s%d%s 차감", 
+                                menuItemName, menuItemQty.intValue(), menuItemUnit,
+                                ingredientName, totalDeduction.intValue(), ingredientUnit));
+                        }
+                        // 스테이크, 베이컨, 샐러드인 경우 특별 표시 (예: 스테이크 1개=고기 0.2kg 차감, 베이컨 1개=고기 0.1kg 차감, 샐러드 1개=채소 0.2kg 차감)
+                        else if (("스테이크".equals(menuItemName) || "베이컨".equals(menuItemName) || "샐러드".equals(menuItemName)) 
+                                && ingredientPerUnit.compareTo(BigDecimal.ONE) < 0) {
+                            notesBuilder.append(String.format("%s %d%s=%s%.1f%s 차감", 
+                                menuItemName, menuItemQty.intValue(), menuItemUnit,
+                                ingredientName, totalDeduction.doubleValue(), ingredientUnit));
+                        }
+                        // 와인인 경우 특별 표시 (예: 와인 1잔=와인 0.2병 차감, 와인 5잔=와인 1병 차감)
+                        else if ("와인".equals(menuItemName) && "병".equals(ingredientUnit) && ingredientPerUnit.compareTo(BigDecimal.ONE) < 0) {
+                            notesBuilder.append(String.format("%s %d%s=%s%.1f%s 차감", 
+                                menuItemName, menuItemQty.intValue(), menuItemUnit,
+                                ingredientName, totalDeduction.doubleValue(), ingredientUnit));
+                        } else {
+                            notesBuilder.append(String.format("%s %d%s 차감", 
+                                menuItemName, totalDeduction.intValue(), ingredientUnit));
+                        }
+                    }
+
                     // 출고 로그 기록
                     Map<String, Object> logData = new HashMap<>();
                     logData.put("ingredient_id", ingredientId);
@@ -141,7 +197,7 @@ public class IngredientDeductionService {
                     logData.put("new_quantity", newQuantity.toString());
                     logData.put("staff_id", staffId);
                     logData.put("order_id", orderId);
-                    logData.put("notes", "요리 완료로 인한 자동 차감");
+                    logData.put("notes", notesBuilder.toString());
 
                     ingredientRepository.createIngredientLog(logData);
 

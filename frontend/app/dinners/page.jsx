@@ -70,7 +70,19 @@ export default function DinnersPage() {
         }
       })
       
-      setDinners(formattedDinners)
+      // 발렌타인, 프렌치, 잉글리시, 샴페인 순서로 정렬
+      const dinnerOrder = ['Valentine Dinner', 'French Dinner', 'English Dinner', 'Champagne Feast']
+      const sortedDinners = formattedDinners.sort((a, b) => {
+        const indexA = dinnerOrder.indexOf(a.name)
+        const indexB = dinnerOrder.indexOf(b.name)
+        // 순서에 없는 항목은 맨 뒤로
+        if (indexA === -1 && indexB === -1) return 0
+        if (indexA === -1) return 1
+        if (indexB === -1) return -1
+        return indexA - indexB
+      })
+      
+      setDinners(sortedDinners)
     } catch (err) {
       console.error("디너 목록 조회 실패:", err)
       setError(err.message || "디너 목록을 불러오는데 실패했습니다.")
@@ -138,7 +150,16 @@ export default function DinnersPage() {
                   {/* 내용 */}
                   <div className="p-6">
                     <h3 className="text-2xl font-bold mb-2">{dinner.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{dinner.description}</p>
+                    {dinner.description && (() => {
+                      const [shortDesc, ...detailParts] = dinner.description.split('\n')
+                      const detailDesc = detailParts.join('\n')
+                      return (
+                        <div className="mb-4">
+                          <p className="text-sm font-semibold text-foreground mb-1">{shortDesc}</p>
+                          {detailDesc && <p className="text-sm text-muted-foreground line-clamp-2">{detailDesc}</p>}
+                        </div>
+                      )
+                    })()}
 
                     {/* 기본 가격 */}
                     <div className="mb-4">

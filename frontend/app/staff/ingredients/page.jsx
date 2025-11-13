@@ -48,6 +48,21 @@ export default function StaffIngredientsPage() {
     }
   }
 
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "알 수 없음"
+    try {
+      const date = new Date(timestamp)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}`
+    } catch (e) {
+      return "알 수 없음"
+    }
+  }
+
   const handleStockIn = async () => {
     if (!selectedIngredient || !quantity) {
       alert("재료와 수량을 입력해주세요")
@@ -190,7 +205,7 @@ export default function StaffIngredientsPage() {
                           +{Number(log.quantity).toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {log.createdAt ? new Date(log.createdAt).toLocaleString("ko-KR") : ""}
+                          {formatTimestamp(log.createdAt || log.created_at)}
                         </p>
                       </div>
                     </div>
@@ -240,7 +255,7 @@ export default function StaffIngredientsPage() {
                           </div>
                           <div className="text-right">
                             <p className={`text-2xl font-bold ${isLow ? "text-red-600" : "text-primary"}`}>
-                              {stock.toLocaleString()}
+                              {stock % 1 === 0 ? stock.toLocaleString() : stock.toFixed(1)}
                             </p>
                             <p className="text-xs text-muted-foreground">{ingredient.unit}</p>
                           </div>

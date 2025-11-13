@@ -14,6 +14,7 @@ public class IngredientLogDTO {
     private String id;
     private String ingredientId;
     private String ingredientName;
+    private String ingredientUnit;
     private String action; // 'in' or 'out'
     private BigDecimal quantity;
     private BigDecimal previousQuantity;

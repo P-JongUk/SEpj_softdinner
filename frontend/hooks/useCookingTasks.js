@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { cookingService } from "@/lib/services/cooking.service"
+import { taskService } from "@/lib/services/task.service"
 
 /**
  * 요리 작업 관리를 위한 커스텀 훅
@@ -14,7 +14,7 @@ export function useCookingTasks() {
     try {
       setLoading(true)
       setError(null)
-      const response = await cookingService.getCookingTasks()
+      const response = await taskService.getCookingTasks()
       setTasks(response.tasks || [])
     } catch (err) {
       console.error("Error loading cooking tasks:", err)
@@ -28,7 +28,7 @@ export function useCookingTasks() {
   // 요리 시작
   const startCooking = async (taskId) => {
     try {
-      const response = await cookingService.startCooking(taskId)
+      const response = await taskService.startCooking(taskId)
       await loadTasks() // 목록 새로고침
       return { 
         success: true,
@@ -44,7 +44,7 @@ export function useCookingTasks() {
   // 요리 완료
   const completeCooking = async (taskId) => {
     try {
-      const response = await cookingService.completeCooking(taskId)
+      const response = await taskService.completeCooking(taskId)
       await loadTasks() // 목록 새로고침
       return { 
         success: true, 

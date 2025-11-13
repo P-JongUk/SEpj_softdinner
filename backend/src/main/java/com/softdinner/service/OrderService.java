@@ -84,18 +84,28 @@ public class OrderService {
                     }
                 }
                 
-                // 커스터마이징 가격 계산
+                // 커스터마이징 가격 계산 (기본 수량 제외, 추가/감소분 반영)
                 for (Map.Entry<String, Integer> entry : request.getCustomizations().entrySet()) {
                     String menuItemId = entry.getKey();
-                    Integer quantity = entry.getValue();
+                    Integer currentQuantity = entry.getValue();
                     
                     Map<String, Object> menuItem = menuItemMap.get(menuItemId);
                     if (menuItem != null) {
-                        Object additionalPriceObj = menuItem.get("additional_price");
-                        if (additionalPriceObj != null) {
-                            BigDecimal additionalPrice = new BigDecimal(additionalPriceObj.toString());
-                            BigDecimal itemTotal = additionalPrice.multiply(new BigDecimal(quantity));
-                            customizationPrice = customizationPrice.add(itemTotal);
+                        // 기본 수량 가져오기
+                        Object defaultQuantityObj = menuItem.get("default_quantity");
+                        Integer defaultQuantity = defaultQuantityObj != null ? 
+                            Integer.parseInt(defaultQuantityObj.toString()) : 0;
+                        
+                        // 기본 수량과의 차이 계산 (추가분은 더하고, 감소분은 빼기)
+                        int quantityDiff = currentQuantity - defaultQuantity;
+                        
+                        if (quantityDiff != 0) {
+                            Object additionalPriceObj = menuItem.get("additional_price");
+                            if (additionalPriceObj != null) {
+                                BigDecimal additionalPrice = new BigDecimal(additionalPriceObj.toString());
+                                BigDecimal itemTotal = additionalPrice.multiply(new BigDecimal(quantityDiff));
+                                customizationPrice = customizationPrice.add(itemTotal);
+                            }
                         }
                     }
                 }

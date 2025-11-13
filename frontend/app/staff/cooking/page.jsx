@@ -79,6 +79,21 @@ export default function StaffCookingPage() {
     }
   }
 
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "알 수 없음"
+    try {
+      const date = new Date(timestamp)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}`
+    } catch (e) {
+      return "알 수 없음"
+    }
+  }
+
   const getStatusBadge = (status) => {
     const config = {
       waiting: { label: "대기중", variant: "secondary", color: "text-blue-600" },
@@ -164,7 +179,21 @@ export default function StaffCookingPage() {
                     {task.deliveryDate && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="w-4 h-4" />
-                        <span>배달 예정: {new Date(task.deliveryDate).toLocaleDateString('ko-KR')}</span>
+                        <span>배달 예정: {formatTimestamp(task.deliveryDate)}</span>
+                      </div>
+                    )}
+                    {/* 요리 시작 시간 */}
+                    {(task.startedAt || task.started_at) && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        <span>요리 시작: {formatTimestamp(task.startedAt || task.started_at)}</span>
+                      </div>
+                    )}
+                    {/* 요리 완료 시간 */}
+                    {(task.completedAt || task.completed_at) && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>요리 완료: {formatTimestamp(task.completedAt || task.completed_at)}</span>
                       </div>
                     )}
                   </div>

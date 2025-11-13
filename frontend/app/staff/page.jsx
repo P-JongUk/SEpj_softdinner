@@ -22,11 +22,11 @@ export default function StaffDashboardPage() {
   const loadRecentActivities = async () => {
     try {
       setLoading(true)
-      // 최근 활동 조회 (재료 입출고, 요리 완료, 배달 완료)
+      // 최근 활동 조회 (재료 입출고, 요리 작업, 배달 작업)
       const [ingredientLogs, cookingTasks, deliveryTasks] = await Promise.all([
-        apiRequest('/api/ingredients/logs?limit=5').catch(() => []),
-        apiRequest('/api/cooking-tasks?status=completed&limit=5').catch(() => []),
-        apiRequest('/api/delivery-tasks?status=completed&limit=5').catch(() => []),
+        apiRequest('/api/ingredients/logs?limit=20').catch(() => []),
+        apiRequest('/api/cooking-tasks').catch(() => []),
+        apiRequest('/api/delivery-tasks').catch(() => []),
       ])
 
       const activities = []
@@ -34,7 +34,7 @@ export default function StaffDashboardPage() {
       // 재료 입출고 기록 (입고만 표시)
       if (ingredientLogs && Array.isArray(ingredientLogs)) {
         ingredientLogs
-          .filter(log => log.type === 'in') // 입고만 필터링
+          .filter(log => log.action === 'in') // 입고만 필터링
           .forEach(log => {
             activities.push({
               type: 'ingredient',
@@ -45,27 +45,82 @@ export default function StaffDashboardPage() {
           })
       }
 
-      // 요리 완료 기록
-      if (cookingTasks && Array.isArray(cookingTasks)) {
-        cookingTasks.forEach(task => {
-          activities.push({
-            type: 'cooking',
-            message: `${task.dinnerName || '주문'} 요리 완료 (재료 자동 차감)`,
-            timestamp: task.completedAt || task.completed_at,
-            color: 'bg-orange-600'
+      // 재료 차감 기록 (요리 시작 시)
+      if (ingredientLogs && Array.isArray(ingredientLogs)) {
+        ingredientLogs
+          .filter(log => log.action === 'out' && log.orderId) // 출고 중 주문 관련만
+          .forEach(log => {
+            // notes가 있으면 notes를 사용, 없으면 기본 형식 사용
+            let message = ''
+            if (log.notes && log.notes.trim()) {
+              message = `주문번호 ${log.orderId?.substring(0, 8) || '알 수 없음'} - ${log.notes}`
+            } else {
+              message = `주문번호 ${log.orderId?.substring(0, 8) || '알 수 없음'} - ${log.ingredientName || '재료'} ${Number(log.quantity).toLocaleString()}${log.ingredientUnit || ''} 차감`
+            }
+            activities.push({
+              type: 'ingredient-deduction',
+              message: message,
+              timestamp: log.createdAt || log.created_at,
+              color: 'bg-red-600'
+            })
           })
+      }
+
+      // 요리 작업 기록 (시작/완료)
+      const cookingTasksList = cookingTasks?.tasks || (Array.isArray(cookingTasks) ? cookingTasks : [])
+      if (Array.isArray(cookingTasksList)) {
+        cookingTasksList.forEach(task => {
+          const orderId = task.orderId ? task.orderId.substring(0, 8) : '알 수 없음'
+          const customerName = task.customerName || '고객'
+          
+          // 요리 시작
+          if (task.status === 'in_progress' && (task.startedAt || task.started_at)) {
+            activities.push({
+              type: 'cooking-start',
+              message: `주문번호 ${orderId} - ${customerName} 요리 시작`,
+              timestamp: task.startedAt || task.started_at,
+              color: 'bg-orange-500'
+            })
+          }
+          
+          // 요리 완료
+          if (task.status === 'completed' && (task.completedAt || task.completed_at)) {
+            activities.push({
+              type: 'cooking-complete',
+              message: `주문번호 ${orderId} - ${customerName} 요리 완료`,
+              timestamp: task.completedAt || task.completed_at,
+              color: 'bg-orange-600'
+            })
+          }
         })
       }
 
-      // 배달 완료 기록
-      if (deliveryTasks && Array.isArray(deliveryTasks)) {
-        deliveryTasks.forEach(task => {
-          activities.push({
-            type: 'delivery',
-            message: `${task.customerName || '고객'} 배달 완료`,
-            timestamp: task.completedAt || task.completed_at,
-            color: 'bg-blue-600'
-          })
+      // 배달 작업 기록 (시작/완료)
+      const deliveryTasksList = deliveryTasks?.tasks || (Array.isArray(deliveryTasks) ? deliveryTasks : [])
+      if (Array.isArray(deliveryTasksList)) {
+        deliveryTasksList.forEach(task => {
+          const orderId = task.orderId ? task.orderId.substring(0, 8) : '알 수 없음'
+          const customerName = task.customerName || '고객'
+          
+          // 배달 시작
+          if (task.status === 'in_transit' && (task.startedAt || task.started_at)) {
+            activities.push({
+              type: 'delivery-start',
+              message: `주문번호 ${orderId} - ${customerName} 배달 시작`,
+              timestamp: task.startedAt || task.started_at,
+              color: 'bg-blue-500'
+            })
+          }
+          
+          // 배달 완료
+          if (task.status === 'completed' && (task.completedAt || task.completed_at)) {
+            activities.push({
+              type: 'delivery-complete',
+              message: `주문번호 ${orderId} - ${customerName} 배달 완료`,
+              timestamp: task.completedAt || task.completed_at,
+              color: 'bg-blue-600'
+            })
+          }
         })
       }
 
@@ -84,19 +139,19 @@ export default function StaffDashboardPage() {
     }
   }
 
-  const formatTimeAgo = (timestamp) => {
+  const formatTimestamp = (timestamp) => {
     if (!timestamp) return "알 수 없음"
-    const now = new Date()
-    const time = new Date(timestamp)
-    const diffMs = now - time
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMins < 1) return "방금 전"
-    if (diffMins < 60) return `${diffMins}분 전`
-    if (diffHours < 24) return `${diffHours}시간 전`
-    return `${diffDays}일 전`
+    try {
+      const date = new Date(timestamp)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}`
+    } catch (e) {
+      return "알 수 없음"
+    }
   }
 
   const menuItems = [
@@ -182,7 +237,7 @@ export default function StaffDashboardPage() {
               {recentActivities.map((activity, idx) => (
                 <div key={idx} className="flex items-center gap-3 text-sm">
                   <div className={`w-2 h-2 rounded-full ${activity.color}`}></div>
-                  <span className="text-muted-foreground">{formatTimeAgo(activity.timestamp)}</span>
+                  <span className="text-muted-foreground min-w-[150px]">{formatTimestamp(activity.timestamp)}</span>
                   <span>{activity.message}</span>
                 </div>
               ))}

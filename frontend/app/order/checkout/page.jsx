@@ -114,7 +114,7 @@ export default function CheckoutPage() {
     const basePrice = Number(dinner.basePrice || 0)
     const stylePrice = Number(style.priceModifier || 0)
     
-    // 커스터마이징 가격 계산
+    // 커스터마이징 가격 계산 (기본 수량 제외, 추가분만 반영)
     let customizationPrice = 0
     if (menuItems && menuItems.length > 0 && customizations) {
       console.log("💰 커스터마이징 가격 계산:", {
@@ -124,12 +124,16 @@ export default function CheckoutPage() {
       })
       
       menuItems.forEach((item) => {
-        const qty = customizations[item.id] || 0
+        const currentQty = customizations[item.id] || 0
+        const defaultQty = item.defaultQuantity || 0
         const additionalPrice = Number(item.additionalPrice || 0)
-        if (qty > 0) {
-          console.log(`  - ${item.name}: ${qty} × ${additionalPrice} = ${qty * additionalPrice}`)
+        // 기본 수량과의 차이를 가격에 반영 (추가분은 더하고, 감소분은 빼기)
+        const quantityDiff = currentQty - defaultQty
+        const itemPriceChange = quantityDiff * additionalPrice
+        if (quantityDiff !== 0) {
+          console.log(`  - ${item.name}: 기본 ${defaultQty}개 포함, ${quantityDiff > 0 ? '추가' : '감소'} ${Math.abs(quantityDiff)}개 × ${additionalPrice} = ${itemPriceChange}`)
         }
-        customizationPrice += qty * additionalPrice
+        customizationPrice += itemPriceChange
       })
     } else {
       console.warn("⚠️ 커스터마이징 데이터 없음:", {
@@ -193,9 +197,9 @@ export default function CheckoutPage() {
       return
     }
 
-    // CVC 검증 (3-4자리 숫자)
-    if (!/^\d{3,4}$/.test(cvc)) {
-      alert("올바른 CVC를 입력해주세요")
+    // CVC 검증 (3자리 숫자)
+    if (!/^\d{3}$/.test(cvc)) {
+      alert("올바른 CVC를 입력해주세요 (3자리 숫자)")
       return
     }
 
@@ -354,7 +358,12 @@ export default function CheckoutPage() {
                         id="cvc"
                         placeholder="123"
                         value={cvc}
-                        onChange={(e) => setCvc(e.target.value)}
+                        onChange={(e) => {
+                          // 숫자만 입력, 최대 3자리
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 3)
+                          setCvc(value)
+                        }}
+                        maxLength={3}
                         className="mt-2"
                         required
                       />
@@ -380,7 +389,7 @@ export default function CheckoutPage() {
                       <span>₩{priceBreakdown.stylePrice.toLocaleString()}</span>
                     </div>
                   )}
-                  {priceBreakdown.customizationPrice > 0 && (
+                  {priceBreakdown.customizationPrice !== 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">메뉴 커스터마이징 가격</span>
                       <span>₩{priceBreakdown.customizationPrice.toLocaleString()}</span>

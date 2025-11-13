@@ -47,6 +47,21 @@ export default function StaffDeliveryPage() {
     }
   }
 
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "알 수 없음"
+    try {
+      const date = new Date(timestamp)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}`
+    } catch (e) {
+      return "알 수 없음"
+    }
+  }
+
   const getStatusBadge = (status) => {
     const config = {
       pending: { label: "배달 대기", variant: "secondary", color: "text-blue-600" },
@@ -100,6 +115,12 @@ export default function StaffDeliveryPage() {
                     </div>
 
                     <div className="space-y-2 mb-4">
+                      {task.orderId && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">주문번호:</span>
+                          <span className="font-medium">{task.orderId}</span>
+                        </div>
+                      )}
                       {task.dinnerName && (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-muted-foreground">주문:</span>
@@ -114,7 +135,21 @@ export default function StaffDeliveryPage() {
                       )}
                       {task.deliveryDate && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>배달 날짜: {new Date(task.deliveryDate).toLocaleDateString('ko-KR')}</span>
+                          <span>배달 예정: {formatTimestamp(task.deliveryDate)}</span>
+                        </div>
+                      )}
+                      {/* 배달 시작 시간 */}
+                      {(task.startedAt || task.started_at) && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Truck className="w-4 h-4" />
+                          <span>배달 시작: {formatTimestamp(task.startedAt || task.started_at)}</span>
+                        </div>
+                      )}
+                      {/* 배달 완료 시간 */}
+                      {(task.completedAt || task.completed_at) && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>배달 완료: {formatTimestamp(task.completedAt || task.completed_at)}</span>
                         </div>
                       )}
                     </div>

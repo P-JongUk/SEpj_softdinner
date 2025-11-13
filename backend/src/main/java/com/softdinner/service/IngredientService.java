@@ -94,10 +94,12 @@ public class IngredientService {
 
                 String logIngredientId = (String) log.get("ingredient_id");
                 String ingredientName = null;
+                String ingredientUnit = null;
                 if (logIngredientId != null) {
                     Map<String, Object> ingredient = ingredientRepository.getIngredientById(logIngredientId);
                     if (ingredient != null) {
                         ingredientName = (String) ingredient.get("name");
+                        ingredientUnit = (String) ingredient.get("unit");
                     }
                 }
 
@@ -105,6 +107,7 @@ public class IngredientService {
                         .id((String) log.get("id"))
                         .ingredientId(logIngredientId)
                         .ingredientName(ingredientName)
+                        .ingredientUnit(ingredientUnit)
                         .action((String) log.get("action"))
                         .quantity(new BigDecimal(log.get("quantity").toString()))
                         .previousQuantity(new BigDecimal(log.get("previous_quantity").toString()))

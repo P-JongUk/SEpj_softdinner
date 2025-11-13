@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { deliveryService } from "@/lib/services/delivery.service"
+import { taskService } from "@/lib/services/task.service"
 
 /**
  * 배달 작업 관리를 위한 커스텀 훅
@@ -14,7 +14,7 @@ export function useDeliveryTasks() {
     try {
       setLoading(true)
       setError(null)
-      const response = await deliveryService.getDeliveryTasks()
+      const response = await taskService.getDeliveryTasks()
       setTasks(response.tasks || [])
     } catch (err) {
       console.error("Error loading delivery tasks:", err)
@@ -28,7 +28,7 @@ export function useDeliveryTasks() {
   // 배달 시작
   const startDelivery = async (taskId) => {
     try {
-      await deliveryService.startDelivery(taskId)
+      await taskService.startDelivery(taskId)
       await loadTasks() // 목록 새로고침
       return { success: true }
     } catch (err) {
@@ -40,7 +40,7 @@ export function useDeliveryTasks() {
   // 배달 완료
   const completeDelivery = async (taskId) => {
     try {
-      const response = await deliveryService.completeDelivery(taskId)
+      const response = await taskService.completeDelivery(taskId)
       await loadTasks() // 목록 새로고침
       return { 
         success: true, 
