@@ -32,5 +32,17 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @GetMapping("/{userId}/loyalty")
+    @PreAuthorize("hasRole('STAFF')")
+    public ResponseEntity<LoyaltyInfoDTO> getCustomerLoyaltyInfo(@PathVariable String userId) {
+        try {
+            LoyaltyInfoDTO loyaltyInfo = loyaltyService.getLoyaltyInfo(userId);
+            return ResponseEntity.ok(loyaltyInfo);
+        } catch (Exception e) {
+            log.error("Error getting customer loyalty info for user {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }
 

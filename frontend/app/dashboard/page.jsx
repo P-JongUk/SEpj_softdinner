@@ -21,6 +21,8 @@ export default function DashboardPage() {
   const [reordering, setReordering] = useState(null)
   const [loyaltyInfo, setLoyaltyInfo] = useState(null)
   const [menuItemMap, setMenuItemMap] = useState({}) // 메뉴 항목 ID -> 이름 매핑
+  const [dinnerMap, setDinnerMap] = useState({}) // 디너 이름 -> 디너 정보 매핑
+  const [styleMap, setStyleMap] = useState({}) // 스타일 이름 -> 스타일 정보 매핑
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -174,6 +176,9 @@ export default function DashboardPage() {
           orderStatus = "pending" // 결제 완료되었지만 아직 요리 시작 전
         }
         
+        // 커스터마이징 가격 계산을 위해 필요한 정보 저장
+        const customizations = order.orderItems?.customizations || {}
+        
         return {
           id: order.id,
           dinner_name: order.dinnerName || order.orderItems?.dinner_name || "알 수 없음",
@@ -185,24 +190,68 @@ export default function DashboardPage() {
           original_price: totalPriceValue, // 할인 전 총액
           discount_applied: discountValue, // 할인 금액
           status: orderStatus,
-          customizations: order.orderItems?.customizations || {},
+          customizations: customizations,
+          // 가격 계산을 위한 추가 정보
+          orderItems: order.orderItems,
         }
       })
       
       console.log("변환된 주문 내역:", formattedOrders)
       setOrders(formattedOrders)
       
-      // 각 주문의 디너에 대한 메뉴 항목을 로드하여 ID->이름 매핑 생성
+      // 각 주문의 디너에 대한 메뉴 항목, 디너 정보, 스타일 정보를 로드
       const loadMenuItemNames = async () => {
         const itemMap = {}
+        const dinnerInfoMap = {}
+        const styleInfoMap = {}
         const uniqueDinners = [...new Set(formattedOrders.map(o => o.dinner_name))]
+        const uniqueStyles = [...new Set(formattedOrders.map(o => o.dinner_style).filter(Boolean))]
         
+        // 디너 정보 로드
+        for (const dinnerName of uniqueDinners) {
+          try {
+            const dinnerData = await menuAPI.getDinnerById(dinnerName)
+            if (dinnerData) {
+              dinnerInfoMap[dinnerName] = {
+                basePrice: Number(dinnerData.basePrice || 0),
+              }
+            }
+          } catch (error) {
+            console.error(`디너 정보 로드 실패 (${dinnerName}):`, error)
+          }
+        }
+        
+        // 스타일 정보 로드
+        try {
+          const stylesData = await menuAPI.getAllStyles()
+          if (stylesData && Array.isArray(stylesData)) {
+            stylesData.forEach(style => {
+              styleInfoMap[style.name] = {
+                priceModifier: Number(style.priceModifier || 0),
+              }
+              // ID로도 매핑 (스타일 ID가 있는 경우)
+              if (style.id) {
+                styleInfoMap[style.id] = {
+                  priceModifier: Number(style.priceModifier || 0),
+                }
+              }
+            })
+          }
+        } catch (error) {
+          console.error(`스타일 정보 로드 실패:`, error)
+        }
+        
+        // 메뉴 항목 로드
         for (const dinnerName of uniqueDinners) {
           try {
             const menuItems = await menuAPI.getMenuItemsByDinnerId(dinnerName)
             if (menuItems && menuItems.length > 0) {
               menuItems.forEach(item => {
-                itemMap[item.id] = item.name
+                itemMap[item.id] = {
+                  name: item.name,
+                  pricePerUnit: item.pricePerUnit || 0,
+                  defaultQuantity: item.defaultQuantity ?? 0,
+                }
               })
             }
           } catch (error) {
@@ -211,6 +260,8 @@ export default function DashboardPage() {
         }
         
         setMenuItemMap(itemMap)
+        setDinnerMap(dinnerInfoMap)
+        setStyleMap(styleInfoMap)
       }
       
       loadMenuItemNames()
@@ -373,24 +424,87 @@ export default function DashboardPage() {
                       <div className="w-full">
                         <div className="bg-secondary/30 rounded-lg p-4 mb-2">
                           <div className="space-y-2 text-sm">
-                            {order.original_price > 0 && order.original_price !== order.total_price && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">주문 금액</span>
-                                <span className="line-through text-muted-foreground">
-                                  ₩{Number(order.original_price || 0).toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                            {order.discount_applied > 0 && (
-                              <div className="flex justify-between text-green-600">
-                                <span>단골 할인</span>
-                                <span>-₩{Number(order.discount_applied || 0).toLocaleString()}</span>
-                              </div>
-                            )}
-                            <div className="flex justify-between pt-2 border-t font-bold text-lg">
-                              <span>최종 결제 금액</span>
-                              <span className="text-primary">₩{Number(order.total_price || 0).toLocaleString()}</span>
-                            </div>
+                            {(() => {
+                              // 가격 계산
+                              let basePrice = 0
+                              let stylePrice = 0
+                              let customizationPrice = 0
+                              
+                              // 디너 기본 가격 가져오기 (API에서 로드한 정보 사용)
+                              const dinnerName = order.dinner_name
+                              if (dinnerName && dinnerMap[dinnerName]) {
+                                basePrice = dinnerMap[dinnerName].basePrice || 0
+                              } else {
+                                // API에서 로드되지 않은 경우 fallback으로 original_price 사용
+                                basePrice = order.original_price || 0
+                              }
+                              
+                              // 스타일 가격 계산 (API에서 로드한 정보 사용)
+                              const styleName = order.dinner_style
+                              const styleId = order.dinner_style_id
+                              if (styleName || styleId) {
+                                // 스타일 이름 또는 ID로 매핑 찾기
+                                const styleInfo = styleMap[styleName] || styleMap[styleId]
+                                if (styleInfo && styleInfo.priceModifier) {
+                                  stylePrice = styleInfo.priceModifier
+                                }
+                              }
+                              
+                              // 커스터마이징 가격 계산
+                              if (order.customizations && Object.keys(order.customizations).length > 0) {
+                                Object.entries(order.customizations).forEach(([itemId, qty]) => {
+                                  const itemInfo = menuItemMap[itemId]
+                                  if (itemInfo && typeof itemInfo === 'object' && itemInfo.pricePerUnit) {
+                                    const defaultQty = itemInfo.defaultQuantity ?? 0
+                                    const quantityDiff = Number(qty) - defaultQty
+                                    if (quantityDiff !== 0 && itemInfo.pricePerUnit) {
+                                      customizationPrice += quantityDiff * Number(itemInfo.pricePerUnit)
+                                    }
+                                  }
+                                })
+                              }
+                              
+                              const subtotal = basePrice + stylePrice + customizationPrice
+                              
+                              return (
+                                <>
+                                  {basePrice > 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">기본 가격</span>
+                                      <span>₩{Number(basePrice).toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  {stylePrice > 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">스타일 추가</span>
+                                      <span>₩{Number(stylePrice).toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  {customizationPrice !== 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">메뉴 커스터마이징 가격</span>
+                                      <span className={customizationPrice > 0 ? '' : 'text-green-600'}>
+                                        {customizationPrice > 0 ? '+' : '-'}₩{Math.abs(Number(customizationPrice)).toLocaleString()}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between pt-2 border-t">
+                                    <span className="text-muted-foreground">소계</span>
+                                    <span className="font-medium">₩{Number(subtotal).toLocaleString()}</span>
+                                  </div>
+                                  {order.discount_applied > 0 && (
+                                    <div className="flex justify-between text-green-600">
+                                      <span>단골 할인 ({order.orderItems?.loyalty_tier?.toUpperCase() || ''} {order.orderItems?.discount_rate ? (Number(order.orderItems.discount_rate) * 100).toFixed(0) : ''}%)</span>
+                                      <span>-₩{Number(order.discount_applied || 0).toLocaleString()}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between pt-2 border-t font-bold text-lg">
+                                    <span>최종 결제 금액</span>
+                                    <span className="text-primary">₩{Number(order.total_price || 0).toLocaleString()}</span>
+                                  </div>
+                                </>
+                              )
+                            })()}
                           </div>
                         </div>
                       </div>

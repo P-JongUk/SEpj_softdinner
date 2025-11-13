@@ -126,6 +126,9 @@ public class OrderService {
             orderItems.put("style_id", style.get("id")); // 실제 UUID 사용
             orderItems.put("style_name", style.get("name"));
             orderItems.put("customizations", request.getCustomizations() != null ? request.getCustomizations() : Map.of());
+            // 주문 시점의 등급 정보 저장 (나중에 주문 완료 페이지에서 표시용)
+            orderItems.put("loyalty_tier", currentTier);
+            orderItems.put("discount_rate", discountRate.doubleValue());
 
             Map<String, Object> orderData = new HashMap<>();
             orderData.put("user_id", userId);
@@ -320,6 +323,152 @@ public class OrderService {
         } catch (Exception e) {
             log.error("Error getting user orders: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to get user orders: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 모든 주문 목록 조회 (직원용)
+     */
+    @SuppressWarnings("unchecked")
+    public List<OrderHistoryDTO> getAllOrders() {
+        try {
+            List<Map<String, Object>> orders = orderRepository.getAllOrders();
+            log.debug("Retrieved {} orders", orders.size());
+            
+            return orders.stream().map(order -> {
+                Map<String, Object> orderItems = (Map<String, Object>) order.get("order_items");
+                
+                String dinnerName = orderItems != null ? (String) orderItems.get("dinner_name") : null;
+                String styleName = orderItems != null ? (String) orderItems.get("style_name") : null;
+                
+                // 고객 정보 조회
+                String userId = (String) order.get("user_id");
+                String customerName = null;
+                if (userId != null) {
+                    try {
+                        Map<String, Object> user = orderRepository.getUserById(userId);
+                        if (user != null) {
+                            customerName = (String) user.get("full_name");
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to fetch customer name for user {}: {}", userId, e.getMessage());
+                    }
+                }
+                
+                // LocalDateTime 변환
+                LocalDateTime orderDate = null;
+                LocalDateTime deliveryDate = null;
+                if (order.get("order_date") != null) {
+                    Object orderDateObj = order.get("order_date");
+                    if (orderDateObj instanceof java.time.Instant) {
+                        orderDate = ((java.time.Instant) orderDateObj)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime();
+                    } else if (orderDateObj instanceof String) {
+                        orderDate = java.time.Instant.parse((String) orderDateObj)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime();
+                    }
+                }
+                if (order.get("delivery_date") != null) {
+                    Object deliveryDateObj = order.get("delivery_date");
+                    if (deliveryDateObj instanceof java.time.Instant) {
+                        deliveryDate = ((java.time.Instant) deliveryDateObj)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime();
+                    } else if (deliveryDateObj instanceof String) {
+                        deliveryDate = java.time.Instant.parse((String) deliveryDateObj)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDateTime();
+                    }
+                }
+                
+                return OrderHistoryDTO.builder()
+                        .id((String) order.get("id"))
+                        .orderDate(orderDate)
+                        .deliveryDate(deliveryDate)
+                        .deliveryAddress((String) order.get("delivery_address"))
+                        .orderItems(orderItems)
+                        .totalPrice(new BigDecimal(order.get("total_price").toString()))
+                        .discountApplied(new BigDecimal(order.get("discount_applied").toString()))
+                        .finalPrice(new BigDecimal(order.get("final_price").toString()))
+                        .paymentStatus((String) order.get("payment_status"))
+                        .deliveryStatus((String) order.get("delivery_status"))
+                        .cookingStatus((String) order.get("cooking_status"))
+                        .dinnerName(dinnerName)
+                        .styleName(styleName)
+                        .userId(userId)
+                        .customerName(customerName)
+                        .build();
+            }).collect(java.util.stream.Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting all orders: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to get all orders: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 주문 ID로 주문 정보 조회
+     */
+    @SuppressWarnings("unchecked")
+    public OrderHistoryDTO getOrderById(String orderId) {
+        try {
+            Map<String, Object> order = orderRepository.getOrderById(orderId);
+            if (order == null) {
+                throw new RuntimeException("Order not found: " + orderId);
+            }
+
+            Map<String, Object> orderItems = (Map<String, Object>) order.get("order_items");
+            
+            String dinnerName = orderItems != null ? (String) orderItems.get("dinner_name") : null;
+            String styleName = orderItems != null ? (String) orderItems.get("style_name") : null;
+            
+            // LocalDateTime 변환
+            LocalDateTime orderDate = null;
+            LocalDateTime deliveryDate = null;
+            if (order.get("order_date") != null) {
+                Object orderDateObj = order.get("order_date");
+                if (orderDateObj instanceof java.time.Instant) {
+                    orderDate = ((java.time.Instant) orderDateObj)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDateTime();
+                } else if (orderDateObj instanceof String) {
+                    orderDate = java.time.Instant.parse((String) orderDateObj)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDateTime();
+                }
+            }
+            if (order.get("delivery_date") != null) {
+                Object deliveryDateObj = order.get("delivery_date");
+                if (deliveryDateObj instanceof java.time.Instant) {
+                    deliveryDate = ((java.time.Instant) deliveryDateObj)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDateTime();
+                } else if (deliveryDateObj instanceof String) {
+                    deliveryDate = java.time.Instant.parse((String) deliveryDateObj)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDateTime();
+                }
+            }
+            
+            return OrderHistoryDTO.builder()
+                    .id((String) order.get("id"))
+                    .orderDate(orderDate)
+                    .deliveryDate(deliveryDate)
+                    .deliveryAddress((String) order.get("delivery_address"))
+                    .orderItems(orderItems)
+                    .totalPrice(new BigDecimal(order.get("total_price").toString()))
+                    .discountApplied(new BigDecimal(order.get("discount_applied").toString()))
+                    .finalPrice(new BigDecimal(order.get("final_price").toString()))
+                    .paymentStatus((String) order.get("payment_status"))
+                    .deliveryStatus((String) order.get("delivery_status"))
+                    .cookingStatus((String) order.get("cooking_status"))
+                    .dinnerName(dinnerName)
+                    .styleName(styleName)
+                    .build();
+        } catch (Exception e) {
+            log.error("Error getting order by id: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to get order: " + e.getMessage(), e);
         }
     }
 }

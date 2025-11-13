@@ -197,6 +197,58 @@ public class OrderRepository {
     }
 
     /**
+     * 모든 주문 목록 조회 (직원용, 최근순)
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getAllOrders() {
+        try {
+            String uri = supabaseUrl + "/rest/v1/orders?order=order_date.desc";
+            log.debug("Fetching all orders from: {}", uri);
+            
+            List<Map<String, Object>> result = supabaseWebClient.get()
+                    .uri(uri)
+                    .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                    .header("apikey", supabaseServiceRoleKey)
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .block();
+
+            log.debug("Retrieved {} orders from Supabase", result != null ? result.size() : 0);
+            return result != null ? result : new java.util.ArrayList<>();
+        } catch (Exception e) {
+            log.error("Error fetching all orders: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch all orders: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 주문 ID로 주문 정보 조회
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getOrderById(String orderId) {
+        try {
+            String uri = supabaseUrl + "/rest/v1/orders?id=eq." + orderId + "&limit=1";
+            log.debug("Fetching order from: {}", uri);
+            
+            List<Map<String, Object>> result = supabaseWebClient.get()
+                    .uri(uri)
+                    .header("Authorization", "Bearer " + supabaseServiceRoleKey)
+                    .header("apikey", supabaseServiceRoleKey)
+                    .retrieve()
+                    .bodyToMono(List.class)
+                    .block();
+
+            if (result != null && result.size() > 0) {
+                return result.get(0);
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("Error fetching order by id: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch order: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 주문 정보 업데이트
      */
     @SuppressWarnings({"unchecked", "null"})

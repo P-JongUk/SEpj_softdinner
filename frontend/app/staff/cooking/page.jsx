@@ -82,14 +82,32 @@ export default function StaffCookingPage() {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "알 수 없음"
     try {
+      // ISO 문자열을 Date 객체로 변환
       const date = new Date(timestamp)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
+      
+      // 유효한 날짜인지 확인
+      if (isNaN(date.getTime())) {
+        console.warn("유효하지 않은 timestamp:", timestamp)
+        return "알 수 없음"
+      }
+      
+      // UTC 시간을 밀리초로 가져오기
+      const utcTime = date.getTime()
+      
+      // 한국 시간대(UTC+9)로 변환: 9시간 = 9 * 60 * 60 * 1000 밀리초
+      const koreaOffset = 9 * 60 * 60 * 1000
+      const koreaTime = new Date(utcTime + koreaOffset)
+      
+      // UTC 메서드를 사용하여 포맷팅 (이미 offset이 적용된 상태)
+      const year = koreaTime.getUTCFullYear()
+      const month = String(koreaTime.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(koreaTime.getUTCDate()).padStart(2, '0')
+      const hours = String(koreaTime.getUTCHours()).padStart(2, '0')
+      const minutes = String(koreaTime.getUTCMinutes()).padStart(2, '0')
+      
       return `${year}-${month}-${day} ${hours}:${minutes}`
     } catch (e) {
+      console.error("시간 포맷팅 실패:", timestamp, e)
       return "알 수 없음"
     }
   }
@@ -179,7 +197,21 @@ export default function StaffCookingPage() {
                     {task.deliveryDate && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="w-4 h-4" />
-                        <span>배달 예정: {formatTimestamp(task.deliveryDate)}</span>
+                        <span>배달 예정: {(() => {
+                          try {
+                            const date = new Date(task.deliveryDate)
+                            if (isNaN(date.getTime())) return "알 수 없음"
+                            const koreaDate = date.toLocaleString('ko-KR', {
+                              timeZone: 'Asia/Seoul',
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit'
+                            })
+                            return koreaDate.replace(/\. /g, '-').replace(/\.$/, '')
+                          } catch (e) {
+                            return "알 수 없음"
+                          }
+                        })()}</span>
                       </div>
                     )}
                     {/* 요리 시작 시간 */}

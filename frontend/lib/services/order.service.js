@@ -15,5 +15,19 @@ export const orderService = {
       method: 'GET',
     })
   },
+
+  // 모든 주문 목록 조회 (직원용)
+  getAllOrders: async () => {
+    return apiRequest('/api/orders/all', {
+      method: 'GET',
+    })
+  },
+
+  // 주문 ID로 주문 정보 조회
+  getOrderById: async (orderId) => {
+    return apiRequest(`/api/orders/${orderId}`, {
+      method: 'GET',
+    })
+  },
 }
 

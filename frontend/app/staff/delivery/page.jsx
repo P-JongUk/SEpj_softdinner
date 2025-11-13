@@ -50,25 +50,43 @@ export default function StaffDeliveryPage() {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "알 수 없음"
     try {
+      // ISO 문자열을 Date 객체로 변환
       const date = new Date(timestamp)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
+      
+      // 유효한 날짜인지 확인
+      if (isNaN(date.getTime())) {
+        console.warn("유효하지 않은 timestamp:", timestamp)
+        return "알 수 없음"
+      }
+      
+      // UTC 시간을 밀리초로 가져오기
+      const utcTime = date.getTime()
+      
+      // 한국 시간대(UTC+9)로 변환: 9시간 = 9 * 60 * 60 * 1000 밀리초
+      const koreaOffset = 9 * 60 * 60 * 1000
+      const koreaTime = new Date(utcTime + koreaOffset)
+      
+      // UTC 메서드를 사용하여 포맷팅 (이미 offset이 적용된 상태)
+      const year = koreaTime.getUTCFullYear()
+      const month = String(koreaTime.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(koreaTime.getUTCDate()).padStart(2, '0')
+      const hours = String(koreaTime.getUTCHours()).padStart(2, '0')
+      const minutes = String(koreaTime.getUTCMinutes()).padStart(2, '0')
+      
       return `${year}-${month}-${day} ${hours}:${minutes}`
     } catch (e) {
+      console.error("시간 포맷팅 실패:", timestamp, e)
       return "알 수 없음"
     }
   }
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, isCookingComplete) => {
     const config = {
       pending: { label: "배달 대기", variant: "secondary", color: "text-blue-600" },
       in_transit: { label: "배달 중", variant: "default", color: "text-orange-600" },
       completed: { label: "배달 완료", variant: "outline", color: "text-green-600" },
     }
-    const { label, variant, color } = config[status]
+    const { label, variant, color } = config[status] || config.pending
     return (
       <Badge variant={variant} className={color}>
         {label}
@@ -111,14 +129,14 @@ export default function StaffDeliveryPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-xl font-bold">{task.customerName}</h3>
-                      {getStatusBadge(task.status)}
+                      {getStatusBadge(task.status, task.isCookingComplete)}
                     </div>
 
                     <div className="space-y-2 mb-4">
                       {task.orderId && (
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-muted-foreground">주문번호:</span>
-                          <span className="font-medium">{task.orderId}</span>
+                          <span className="font-medium">{task.orderId ? String(task.orderId).substring(0, 8) : "N/A"}</span>
                         </div>
                       )}
                       {task.dinnerName && (
@@ -135,7 +153,21 @@ export default function StaffDeliveryPage() {
                       )}
                       {task.deliveryDate && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>배달 예정: {formatTimestamp(task.deliveryDate)}</span>
+                          <span>배달 예정: {(() => {
+                            try {
+                              const date = new Date(task.deliveryDate)
+                              if (isNaN(date.getTime())) return "알 수 없음"
+                              const koreaDate = date.toLocaleString('ko-KR', {
+                                timeZone: 'Asia/Seoul',
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit'
+                              })
+                              return koreaDate.replace(/\. /g, '-').replace(/\.$/, '')
+                            } catch (e) {
+                              return "알 수 없음"
+                            }
+                          })()}</span>
                         </div>
                       )}
                       {/* 배달 시작 시간 */}
@@ -170,7 +202,9 @@ export default function StaffDeliveryPage() {
                         ) : (
                           <ChefHat className="w-4 h-4 mr-2" />
                         )}
-                        {task.isCookingComplete ? "배달 시작" : "요리중"}
+                        {task.isCookingComplete 
+                          ? "배달 시작" 
+                          : (task.cookingStatus === "in_progress" ? "요리중" : "접수 대기중")}
                       </Button>
                     )}
                     {task.status === "in_transit" && (

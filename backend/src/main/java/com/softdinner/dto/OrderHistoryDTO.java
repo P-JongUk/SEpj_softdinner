@@ -26,5 +26,9 @@ public class OrderHistoryDTO {
     // 주문 항목에서 추출한 정보 (편의 필드)
     private String dinnerName;
     private String styleName;
+    
+    // 고객 정보
+    private String userId;
+    private String customerName;
 }
 

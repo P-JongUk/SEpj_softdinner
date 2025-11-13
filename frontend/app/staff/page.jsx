@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Package, ChefHat, Truck, LogOut, ArrowLeft } from "lucide-react"
+import { Package, ChefHat, Truck, LogOut, ArrowLeft, ShoppingBag } from "lucide-react"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
 import { useAuth } from "@/context/AuthContext"
 import { apiRequest } from "@/lib/api"
@@ -36,10 +36,12 @@ export default function StaffDashboardPage() {
         ingredientLogs
           .filter(log => log.action === 'in') // 입고만 필터링
           .forEach(log => {
+            // timestamp 정규화 (여러 필드명 확인)
+            const timestamp = log.createdAt || log.created_at || log.timestamp
             activities.push({
               type: 'ingredient',
               message: `${log.ingredientName || '재료'} ${Number(log.quantity).toLocaleString()}${log.ingredientUnit || ''} 입고 완료`,
-              timestamp: log.createdAt || log.created_at,
+              timestamp: timestamp,
               color: 'bg-green-600'
             })
           })
@@ -57,10 +59,12 @@ export default function StaffDashboardPage() {
             } else {
               message = `주문번호 ${log.orderId?.substring(0, 8) || '알 수 없음'} - ${log.ingredientName || '재료'} ${Number(log.quantity).toLocaleString()}${log.ingredientUnit || ''} 차감`
             }
+            // timestamp 정규화 (여러 필드명 확인)
+            const timestamp = log.createdAt || log.created_at || log.timestamp
             activities.push({
               type: 'ingredient-deduction',
               message: message,
-              timestamp: log.createdAt || log.created_at,
+              timestamp: timestamp,
               color: 'bg-red-600'
             })
           })
@@ -71,24 +75,25 @@ export default function StaffDashboardPage() {
       if (Array.isArray(cookingTasksList)) {
         cookingTasksList.forEach(task => {
           const orderId = task.orderId ? task.orderId.substring(0, 8) : '알 수 없음'
-          const customerName = task.customerName || '고객'
           
           // 요리 시작
           if (task.status === 'in_progress' && (task.startedAt || task.started_at)) {
+            const timestamp = task.startedAt || task.started_at || task.timestamp
             activities.push({
               type: 'cooking-start',
-              message: `주문번호 ${orderId} - ${customerName} 요리 시작`,
-              timestamp: task.startedAt || task.started_at,
+              message: `주문번호 ${orderId} 요리 시작`,
+              timestamp: timestamp,
               color: 'bg-orange-500'
             })
           }
           
           // 요리 완료
           if (task.status === 'completed' && (task.completedAt || task.completed_at)) {
+            const timestamp = task.completedAt || task.completed_at || task.timestamp
             activities.push({
               type: 'cooking-complete',
-              message: `주문번호 ${orderId} - ${customerName} 요리 완료`,
-              timestamp: task.completedAt || task.completed_at,
+              message: `주문번호 ${orderId} 요리 완료`,
+              timestamp: timestamp,
               color: 'bg-orange-600'
             })
           }
@@ -100,24 +105,25 @@ export default function StaffDashboardPage() {
       if (Array.isArray(deliveryTasksList)) {
         deliveryTasksList.forEach(task => {
           const orderId = task.orderId ? task.orderId.substring(0, 8) : '알 수 없음'
-          const customerName = task.customerName || '고객'
           
           // 배달 시작
           if (task.status === 'in_transit' && (task.startedAt || task.started_at)) {
+            const timestamp = task.startedAt || task.started_at || task.timestamp
             activities.push({
               type: 'delivery-start',
-              message: `주문번호 ${orderId} - ${customerName} 배달 시작`,
-              timestamp: task.startedAt || task.started_at,
+              message: `주문번호 ${orderId} 배달 시작`,
+              timestamp: timestamp,
               color: 'bg-blue-500'
             })
           }
           
           // 배달 완료
           if (task.status === 'completed' && (task.completedAt || task.completed_at)) {
+            const timestamp = task.completedAt || task.completed_at || task.timestamp
             activities.push({
               type: 'delivery-complete',
-              message: `주문번호 ${orderId} - ${customerName} 배달 완료`,
-              timestamp: task.completedAt || task.completed_at,
+              message: `주문번호 ${orderId} 배달 완료, 주문처리완료`,
+              timestamp: timestamp,
               color: 'bg-blue-600'
             })
           }
@@ -142,14 +148,32 @@ export default function StaffDashboardPage() {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "알 수 없음"
     try {
+      // ISO 문자열을 Date 객체로 변환
       const date = new Date(timestamp)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
+      
+      // 유효한 날짜인지 확인
+      if (isNaN(date.getTime())) {
+        console.warn("유효하지 않은 timestamp:", timestamp)
+        return "알 수 없음"
+      }
+      
+      // UTC 시간을 밀리초로 가져오기
+      const utcTime = date.getTime()
+      
+      // 한국 시간대(UTC+9)로 변환: 9시간 = 9 * 60 * 60 * 1000 밀리초
+      const koreaOffset = 9 * 60 * 60 * 1000
+      const koreaTime = new Date(utcTime + koreaOffset)
+      
+      // UTC 메서드를 사용하여 포맷팅 (이미 offset이 적용된 상태)
+      const year = koreaTime.getUTCFullYear()
+      const month = String(koreaTime.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(koreaTime.getUTCDate()).padStart(2, '0')
+      const hours = String(koreaTime.getUTCHours()).padStart(2, '0')
+      const minutes = String(koreaTime.getUTCMinutes()).padStart(2, '0')
+      
       return `${year}-${month}-${day} ${hours}:${minutes}`
     } catch (e) {
+      console.error("시간 포맷팅 실패:", timestamp, e)
       return "알 수 없음"
     }
   }
@@ -178,6 +202,14 @@ export default function StaffDashboardPage() {
       href: "/staff/delivery",
       color: "text-green-600",
       bgColor: "bg-green-50",
+    },
+    {
+      title: "고객별 주문 내역",
+      description: "모든 고객의 주문 내역 조회",
+      icon: ShoppingBag,
+      href: "/staff/orders",
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
     },
   ]
 
